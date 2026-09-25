@@ -1,22 +1,22 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/react-starter-kit",
+    "name": "factos/api",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Factos API - Laravel API for electronic invoicing (SUNAT) with Greenter.",
     "keywords": [
         "laravel",
-        "framework"
+        "api",
+        "facturacion-electronica",
+        "sunat",
+        "greenter"
     ],
     "license": "MIT",
     "require": {
         "php": "^8.3",
         "greenter/greenter": "^3.0",
-        "inertiajs/inertia-laravel": "^3.0",
-        "laravel/chisel": "^0.1.0",
-        "laravel/fortify": "^1.37.2",
         "laravel/framework": "^13.17",
-        "laravel/tinker": "^3.0",
-        "laravel/wayfinder": "^0.1.14"
+        "laravel/sanctum": "^4.0",
+        "laravel/tinker": "^3.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",
@@ -47,14 +47,11 @@
         "setup": [
             "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
-            "@php artisan key:generate",
-            "@php artisan migrate --force",
-            "npm install",
-            "npm run build"
+            "@php artisan key:generate"
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "@php artisan dev"
+            "@php artisan serve"
         ],
         "lint": [
             "pint --parallel"
@@ -64,8 +61,8 @@
         ],
         "ci:check": [
             "Composer\\Config::disableProcessTimeout",
-            "npm run check",
-            "npm run types:check",
+            "@lint:check",
+            "@types:check",
             "@test"
         ],
         "types:check": [
