@@ -15,7 +15,7 @@ class InvoiceController extends Controller
     {
         $validated = $request->validated();
         $series = strtoupper($validated['series']);
-        $typeCode = str_starts_with($series, 'B') ? '03' : '01';
+        $typeCode = $validated['type_code'] ?? $request->determineTypeCode();
 
         $totals = $validated['totals'];
         $client = $validated['client'];
@@ -31,6 +31,13 @@ class InvoiceController extends Controller
                 'issue_time' => $validated['issue_time'],
                 'due_date' => $validated['due_date'] ?? null,
                 'currency' => $validated['currency'],
+                'payment_method' => strtolower($validated['payment_method'] ?? 'contado'),
+                'installments' => $validated['installments'] ?? null,
+                'detraction' => $validated['detraction'] ?? null,
+                'retention' => $validated['retention'] ?? null,
+                'prepayments' => $validated['prepayments'] ?? null,
+                'related_documents' => $validated['related_documents'] ?? null,
+                'note_data' => $validated['note'] ?? null,
                 'client_doc_type' => $client['doc_type'],
                 'client_doc_number' => $client['doc_number'],
                 'client_name' => $client['name'],
@@ -74,6 +81,7 @@ class InvoiceController extends Controller
                 'id' => $document->id,
                 'external_id' => $document->external_id,
                 'document' => $document->getDocumentNumber(),
+                'type_code' => $document->type_code,
                 'status' => 'pending',
             ],
         ], 202);

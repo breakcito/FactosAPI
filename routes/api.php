@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Auth\LogoutController;
 use App\Http\Controllers\Api\Auth\MeController;
 use App\Http\Controllers\Api\Auth\RegisterController;
 use App\Http\Controllers\Api\CompanyController;
+use App\Http\Controllers\Api\DespatchController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\InvoiceController;
@@ -42,6 +43,13 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('/documents/{document}/xml', [DocumentController::class, 'xml'])->name('documents.xml');
     Route::get('/documents/{document}/cdr', [DocumentController::class, 'cdr'])->name('documents.cdr');
     Route::get('/documents/{document}/pdf', [DocumentController::class, 'pdf'])->name('documents.pdf');
+    Route::get('/documents/{document}/void-xml', [DocumentController::class, 'voidXml'])->name('documents.voidXml');
+    Route::get('/documents/{document}/void-cdr', [DocumentController::class, 'voidCdr'])->name('documents.voidCdr');
+
+    // Despatches public downloads
+    Route::get('/despatches/{despatch}/xml', [DespatchController::class, 'xml'])->name('despatches.xml');
+    Route::get('/despatches/{despatch}/cdr', [DespatchController::class, 'cdr'])->name('despatches.cdr');
+    Route::get('/despatches/{despatch}/pdf', [DespatchController::class, 'pdf'])->name('despatches.pdf');
 
     // Protected endpoints
     Route::middleware('auth:sanctum')->group(function (): void {
@@ -49,11 +57,26 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::apiResource('companies', CompanyController::class)->only(['index', 'store', 'show', 'update']);
         Route::get('/companies/{company}/webhooks', [CompanyController::class, 'webhooks'])->name('companies.webhooks');
 
-        // Electronic Invoicing (Asynchronous)
-        Route::post('/invoices', [InvoiceController::class, 'store'])->name('invoices.store');
-
-        // Documents Consultation
+        // Electronic Documents (Invoices, Boletas, Notas de Crédito, Notas de Débito)
+        Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index');
+        Route::post('/documents', [InvoiceController::class, 'store'])->name('documents.store');
         Route::get('/documents/{document}', [DocumentController::class, 'show'])->name('documents.show');
+
+        // Dedicated Aliases for developer convenience
+        Route::post('/invoices', [InvoiceController::class, 'store'])->name('invoices.store');
+        Route::post('/boletas', [InvoiceController::class, 'store'])->name('boletas.store');
+        Route::post('/credit-notes', [InvoiceController::class, 'store'])->name('credit-notes.store');
+        Route::post('/debit-notes', [InvoiceController::class, 'store'])->name('debit-notes.store');
+
+        // Document Annullment / Bajas SUNAT
+        Route::post('/documents/void', [DocumentController::class, 'void'])->name('documents.voidGeneral');
+        Route::post('/documents/{document}/void', [DocumentController::class, 'void'])->name('documents.void');
+
+        // Guías de Remisión Electrónica (GRE)
+        Route::get('/despatches', [DespatchController::class, 'index'])->name('despatches.index');
+        Route::post('/despatches', [DespatchController::class, 'store'])->name('despatches.store');
+        Route::get('/despatches/{despatch}', [DespatchController::class, 'show'])->name('despatches.show');
+        Route::post('/despatches/{despatch}/void', [DespatchController::class, 'void'])->name('despatches.void');
 
         // Auxiliary Services (DNI, RUC, Exchange Rate)
         Route::prefix('services')->name('services.')->group(function (): void {

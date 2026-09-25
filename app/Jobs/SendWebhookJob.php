@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\Despatch;
 use App\Models\Document;
 use App\Models\WebhookDelivery;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -17,7 +18,7 @@ class SendWebhookJob implements ShouldQueue
     use InteractsWithQueue, Queueable, SerializesModels;
 
     public function __construct(
-        public Document $document,
+        public Document|Despatch $document,
         public string $event
     ) {
         $this->onQueue('webhooks');
@@ -33,6 +34,8 @@ class SendWebhookJob implements ShouldQueue
         }
 
         $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
+        $isDespatch = $this->document instanceof Despatch;
+        $urlSegment = $isDespatch ? 'despatches' : 'documents';
 
         $payload = [
             'event' => $this->event,
@@ -50,9 +53,9 @@ class SendWebhookJob implements ShouldQueue
                 ],
                 'hash' => $this->document->hash,
                 'links' => [
-                    'xml' => "{$baseUrl}/api/v1/documents/{$this->document->id}/xml",
-                    'cdr' => "{$baseUrl}/api/v1/documents/{$this->document->id}/cdr",
-                    'pdf' => "{$baseUrl}/api/v1/documents/{$this->document->id}/pdf",
+                    'xml' => "{$baseUrl}/api/v1/{$urlSegment}/{$this->document->id}/xml",
+                    'cdr' => "{$baseUrl}/api/v1/{$urlSegment}/{$this->document->id}/cdr",
+                    'pdf' => "{$baseUrl}/api/v1/{$urlSegment}/{$this->document->id}/pdf",
                 ],
             ],
         ];
@@ -63,7 +66,8 @@ class SendWebhookJob implements ShouldQueue
 
         $delivery = WebhookDelivery::create([
             'company_id' => $company->id,
-            'document_id' => $this->document->id,
+            'document_id' => $isDespatch ? null : $this->document->id,
+            'despatch_id' => $isDespatch ? $this->document->id : null,
             'event' => $this->event,
             'payload' => $payload,
             'status' => 'pending',
@@ -75,17 +79,17 @@ class SendWebhookJob implements ShouldQueue
                 'Content-Type' => 'application/json',
                 'X-Factos-Signature' => $signature,
                 'X-Factos-Event' => $this->event,
-            ])->timeout(15)->withBody($bodyRaw ?: '', 'application/json')->post($company->webhook_url);
+            ])->timeout(10)->withBody($bodyRaw ?: '', 'application/json')->post($company->webhook_url);
 
             $delivery->update([
                 'response_code' => $response->status(),
-                'response_body' => substr($response->body(), 0, 2000),
+                'response_body' => substr($response->body(), 0, 1000),
                 'status' => $response->successful() ? 'delivered' : 'failed',
             ]);
         } catch (Throwable $e) {
-            Log::warning("Failed delivering webhook to {$company->webhook_url}: {$e->getMessage()}");
+            Log::warning("Fallo al entregar webhook a {$company->webhook_url}: {$e->getMessage()}");
             $delivery->update([
-                'response_code' => 500,
+                'response_code' => 0,
                 'response_body' => $e->getMessage(),
                 'status' => 'failed',
             ]);

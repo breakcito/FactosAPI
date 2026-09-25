@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Carbon\CarbonInterface;
-use Database\Factories\DocumentFactory;
+use Database\Factories\DespatchFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,28 +21,36 @@ use Illuminate\Support\Carbon;
  * @property int $correlative
  * @property CarbonInterface $issue_date
  * @property string $issue_time
- * @property CarbonInterface|null $due_date
- * @property string $currency
- * @property string $payment_method
- * @property array<string, mixed>|null $installments
- * @property array<string, mixed>|null $detraction
- * @property array<string, mixed>|null $retention
- * @property array<string, mixed>|null $prepayments
+ * @property CarbonInterface $transfer_date
+ * @property CarbonInterface|null $delivery_date
+ * @property string $transport_mode
+ * @property string $transfer_reason
+ * @property string|null $transfer_description
+ * @property string $total_weight
+ * @property string $weight_unit
+ * @property int $packages_count
+ * @property string $recipient_doc_type
+ * @property string $recipient_doc_number
+ * @property string $recipient_name
+ * @property string|null $recipient_address
+ * @property string|null $recipient_email
+ * @property string $origin_ubigeo
+ * @property string $origin_address
+ * @property string $destination_ubigeo
+ * @property string $destination_address
+ * @property string|null $carrier_doc_type
+ * @property string|null $carrier_doc_number
+ * @property string|null $carrier_name
+ * @property string|null $carrier_mtc
+ * @property string|null $driver_doc_type
+ * @property string|null $driver_doc_number
+ * @property string|null $driver_name
+ * @property string|null $driver_license
+ * @property string|null $vehicle_plate
+ * @property string|null $secondary_vehicle_plate
  * @property array<string, mixed>|null $related_documents
- * @property array<string, mixed>|null $note_data
- * @property string $client_doc_type
- * @property string $client_doc_number
- * @property string $client_name
- * @property string|null $client_address
- * @property string|null $client_email
- * @property string $total_taxable
- * @property string $total_unaffected
- * @property string $total_exonerated
- * @property string $total_igv
- * @property string $total_icbper
- * @property string $total_discount
- * @property string $total
  * @property string $status
+ * @property string|null $sunat_ticket
  * @property string|null $sunat_code
  * @property string|null $sunat_description
  * @property array<string>|null $sunat_notes
@@ -62,12 +70,12 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Company $company
- * @property-read Collection<int, DocumentItem> $items
+ * @property-read Collection<int, DespatchItem> $items
  * @property-read Collection<int, WebhookDelivery> $webhookDeliveries
  */
-class Document extends Model
+class Despatch extends Model
 {
-    /** @use HasFactory<DocumentFactory> */
+    /** @use HasFactory<DespatchFactory> */
     use HasFactory, HasUuids;
 
     protected $fillable = [
@@ -78,28 +86,36 @@ class Document extends Model
         'correlative',
         'issue_date',
         'issue_time',
-        'due_date',
-        'currency',
-        'payment_method',
-        'installments',
-        'detraction',
-        'retention',
-        'prepayments',
+        'transfer_date',
+        'delivery_date',
+        'transport_mode',
+        'transfer_reason',
+        'transfer_description',
+        'total_weight',
+        'weight_unit',
+        'packages_count',
+        'recipient_doc_type',
+        'recipient_doc_number',
+        'recipient_name',
+        'recipient_address',
+        'recipient_email',
+        'origin_ubigeo',
+        'origin_address',
+        'destination_ubigeo',
+        'destination_address',
+        'carrier_doc_type',
+        'carrier_doc_number',
+        'carrier_name',
+        'carrier_mtc',
+        'driver_doc_type',
+        'driver_doc_number',
+        'driver_name',
+        'driver_license',
+        'vehicle_plate',
+        'secondary_vehicle_plate',
         'related_documents',
-        'note_data',
-        'client_doc_type',
-        'client_doc_number',
-        'client_name',
-        'client_address',
-        'client_email',
-        'total_taxable',
-        'total_unaffected',
-        'total_exonerated',
-        'total_igv',
-        'total_icbper',
-        'total_discount',
-        'total',
         'status',
+        'sunat_ticket',
         'sunat_code',
         'sunat_description',
         'sunat_notes',
@@ -125,62 +141,37 @@ class Document extends Model
     {
         return [
             'issue_date' => 'date',
-            'due_date' => 'date',
+            'transfer_date' => 'date',
+            'delivery_date' => 'date',
             'next_retry_at' => 'datetime',
             'voided_at' => 'datetime',
             'correlative' => 'integer',
+            'packages_count' => 'integer',
             'retry_count' => 'integer',
-            'total_taxable' => 'decimal:2',
-            'total_unaffected' => 'decimal:2',
-            'total_exonerated' => 'decimal:2',
-            'total_igv' => 'decimal:2',
-            'total_icbper' => 'decimal:2',
-            'total_discount' => 'decimal:2',
-            'total' => 'decimal:2',
+            'total_weight' => 'decimal:3',
             'sunat_notes' => 'array',
-            'installments' => 'array',
-            'detraction' => 'array',
-            'retention' => 'array',
-            'prepayments' => 'array',
             'related_documents' => 'array',
-            'note_data' => 'array',
         ];
     }
 
-    /**
-     * Get document short number: F001-452.
-     */
     public function getDocumentNumber(): string
     {
         return sprintf('%s-%s', $this->series, $this->correlative);
     }
 
-    /**
-     * Get full SUNAT file name without extension: {RUC}-{type_code}-{series}-{correlative}.
-     */
     public function getSunatFileName(): string
     {
         return sprintf('%s-%s-%s-%s', $this->company->ruc, $this->type_code, $this->series, $this->correlative);
     }
 
-    public function isInvoice(): bool
+    public function isPublicTransport(): bool
     {
-        return $this->type_code === '01';
+        return $this->transport_mode === '01';
     }
 
-    public function isBoleta(): bool
+    public function isPrivateTransport(): bool
     {
-        return $this->type_code === '03';
-    }
-
-    public function isCreditNote(): bool
-    {
-        return $this->type_code === '07';
-    }
-
-    public function isDebitNote(): bool
-    {
-        return $this->type_code === '08';
+        return $this->transport_mode === '02';
     }
 
     public function isVoided(): bool
@@ -197,11 +188,11 @@ class Document extends Model
     }
 
     /**
-     * @return HasMany<DocumentItem, $this>
+     * @return HasMany<DespatchItem, $this>
      */
     public function items(): HasMany
     {
-        return $this->hasMany(DocumentItem::class);
+        return $this->hasMany(DespatchItem::class);
     }
 
     /**

@@ -12,7 +12,8 @@ use Illuminate\Support\Carbon;
 /**
  * @property string $id
  * @property string $company_id
- * @property string $document_id
+ * @property string|null $document_id
+ * @property string|null $despatch_id
  * @property string $event
  * @property array<string, mixed> $payload
  * @property int|null $response_code
@@ -22,7 +23,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon $created_at
  * @property Carbon|null $updated_at
  * @property-read Company $company
- * @property-read Document $document
+ * @property-read Document|null $document
+ * @property-read Despatch|null $despatch
  */
 class WebhookDelivery extends Model
 {
@@ -32,6 +34,7 @@ class WebhookDelivery extends Model
     protected $fillable = [
         'company_id',
         'document_id',
+        'despatch_id',
         'event',
         'payload',
         'response_code',
@@ -66,5 +69,13 @@ class WebhookDelivery extends Model
     public function document(): BelongsTo
     {
         return $this->belongsTo(Document::class);
+    }
+
+    /**
+     * @return BelongsTo<Despatch, $this>
+     */
+    public function despatch(): BelongsTo
+    {
+        return $this->belongsTo(Despatch::class);
     }
 }

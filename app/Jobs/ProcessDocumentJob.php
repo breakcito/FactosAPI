@@ -29,11 +29,8 @@ class ProcessDocumentJob implements ShouldQueue
     ): void {
         $this->document->loadMissing(['company', 'items']);
 
-        // 1. Build Greenter Invoice model
-        $invoice = $builder->build($this->document);
-
-        // 2. Generate UBL 2.1 XML and digitally sign with company certificate
-        $signResult = $greenterService->signDocument($this->document, $invoice);
+        // 1. Generate UBL 2.1 XML and digitally sign with company certificate
+        $signResult = $greenterService->signDocument($this->document);
 
         $this->document->hash = $signResult['hash'];
         $this->document->xml_path = $signResult['xml_path'];

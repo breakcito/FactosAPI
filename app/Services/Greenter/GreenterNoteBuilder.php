@@ -9,18 +9,14 @@ use DateTimeZone;
 use Greenter\Model\Client\Client as GreenterClient;
 use Greenter\Model\Company\Address as GreenterAddress;
 use Greenter\Model\Company\Company as GreenterCompany;
-use Greenter\Model\Sale\Cuota;
-use Greenter\Model\Sale\Detraction;
 use Greenter\Model\Sale\Document as GreenterDocRel;
-use Greenter\Model\Sale\FormaPagos\FormaPagoCredito;
-use Greenter\Model\Sale\Invoice;
 use Greenter\Model\Sale\Legend;
-use Greenter\Model\Sale\Prepayment;
+use Greenter\Model\Sale\Note;
 use Greenter\Model\Sale\SaleDetail;
 
-class GreenterInvoiceBuilder
+class GreenterNoteBuilder
 {
-    public function build(Document $document): Invoice
+    public function build(Document $document): Note
     {
         $company = $document->company;
 
@@ -60,13 +56,22 @@ class GreenterInvoiceBuilder
         $icbper = (float) $document->total_icbper;
         $total = (float) $document->total;
 
-        $invoice = (new Invoice)
+        $noteData = $document->note_data ?? [];
+        $affectedType = $noteData['affected_type'] ?? ($document->series[0] === 'F' ? '01' : '03');
+        $affectedSeries = $noteData['affected_series'] ?? 'F001';
+        $affectedCorrelative = (string) ($noteData['affected_correlative'] ?? '1');
+        $affectedNumber = sprintf('%s-%s', $affectedSeries, $affectedCorrelative);
+
+        $note = (new Note)
             ->setUblVersion('2.1')
-            ->setTipoOperacion('0101') // Venta interna (Catálogo 51)
-            ->setTipoDoc($document->type_code) // 01: Factura, 03: Boleta
+            ->setTipoDoc($document->type_code) // 07: Nota Credito, 08: Nota Debito
             ->setSerie($document->series)
             ->setCorrelativo((string) $document->correlative)
             ->setFechaEmision($issueDateTime)
+            ->setTipDocAfectado($affectedType)
+            ->setNumDocfectado($affectedNumber)
+            ->setCodMotivo($noteData['code'] ?? '01')
+            ->setDesMotivo($noteData['reason'] ?? 'Modificación de la operación')
             ->setTipoMoneda($document->currency)
             ->setCompany($greenterCompany)
             ->setClient($greenterClient)
@@ -79,53 +84,6 @@ class GreenterInvoiceBuilder
             ->setSubTotal($total)
             ->setMtoImpVenta($total);
 
-        // Fecha de vencimiento si aplica
-        if ($document->due_date && $document->due_date->gt($document->issue_date)) {
-            $invoice->setFecVencimiento(new DateTime($document->due_date->format('Y-m-d'), new DateTimeZone('America/Lima')));
-        }
-
-        // Forma de pago: Credito con Cuotas
-        if (strtolower($document->payment_method) === 'credito') {
-            $invoice->setFormaPago(new FormaPagoCredito($total));
-
-            if (! empty($document->installments)) {
-                $cuotas = [];
-                foreach ($document->installments as $inst) {
-                    $cuotas[] = (new Cuota)
-                        ->setMonto((float) $inst['amount'])
-                        ->setFechaPago(new DateTime($inst['due_date'], new DateTimeZone('America/Lima')));
-                }
-                $invoice->setCuotas($cuotas);
-            }
-        }
-
-        // Detracciones
-        if (! empty($document->detraction)) {
-            $detr = $document->detraction;
-            $detraccion = (new Detraction)
-                ->setCodMedioPago($detr['payment_method_code'] ?? '001')
-                ->setCtaBanco($detr['bank_account'])
-                ->setCodBienDetraccion($detr['service_code'])
-                ->setPercent((float) $detr['percent'])
-                ->setMount((float) $detr['amount']);
-            $invoice->setDetraccion($detraccion);
-        }
-
-        // Anticipos
-        if (! empty($document->prepayments)) {
-            $anticipos = [];
-            $totalAnticipos = 0.0;
-            foreach ($document->prepayments as $ant) {
-                $anticipos[] = (new Prepayment)
-                    ->setTipoDocRel($ant['type_code'] ?? '02')
-                    ->setNroDocRel($ant['number'])
-                    ->setTotal((float) $ant['total']);
-                $totalAnticipos += (float) $ant['total'];
-            }
-            $invoice->setAnticipos($anticipos)
-                ->setTotalAnticipos($totalAnticipos);
-        }
-
         // Guías y Documentos Relacionados
         if (! empty($document->related_documents)) {
             $guias = [];
@@ -134,7 +92,7 @@ class GreenterInvoiceBuilder
                     ->setTipoDoc($rel['type_code'] ?? '09')
                     ->setNroDoc($rel['number']);
             }
-            $invoice->setGuias($guias);
+            $note->setGuias($guias);
         }
 
         // Items
@@ -166,17 +124,17 @@ class GreenterInvoiceBuilder
 
             $details[] = $detail;
         }
-        $invoice->setDetails($details);
+        $note->setDetails($details);
 
         // Legends
         $legends = [
             (new Legend)
-                ->setCode('1000') // Importe total en letras
+                ->setCode('1000')
                 ->setValue(NumeroALetras::convert($document->total, $document->currency)),
         ];
-        $invoice->setLegends($legends);
+        $note->setLegends($legends);
 
-        return $invoice;
+        return $note;
     }
 
     private function createDateTime(string $date, string $time): DateTime

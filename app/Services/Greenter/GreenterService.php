@@ -3,13 +3,18 @@
 namespace App\Services\Greenter;
 
 use App\Models\Company;
+use App\Models\Despatch;
 use App\Models\Document;
 use App\Services\Greenter\Ws\SunatSoapClient;
 use Greenter\Model\Response\BillResult;
-use Greenter\Model\Sale\Invoice;
+use Greenter\Model\Response\StatusResult;
+use Greenter\Model\Response\SummaryResult;
+use Greenter\Model\Summary\Summary;
+use Greenter\Model\Voided\Voided;
 use Greenter\Report\XmlUtils;
 use Greenter\See;
 use Greenter\Ws\Services\BillSender;
+use Greenter\Ws\Services\ExtService;
 use Greenter\Ws\Services\SunatEndpoints;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +23,16 @@ class GreenterService
 {
     public function __construct(
         protected CertificateService $certificateService,
-    ) {}
+        protected ?GreenterInvoiceBuilder $invoiceBuilder = null,
+        protected ?GreenterNoteBuilder $noteBuilder = null,
+        protected ?GreenterDespatchBuilder $despatchBuilder = null,
+        protected ?GreenterVoidedBuilder $voidedBuilder = null,
+    ) {
+        $this->invoiceBuilder = $invoiceBuilder ?? new GreenterInvoiceBuilder;
+        $this->noteBuilder = $noteBuilder ?? new GreenterNoteBuilder;
+        $this->despatchBuilder = $despatchBuilder ?? new GreenterDespatchBuilder;
+        $this->voidedBuilder = $voidedBuilder ?? new GreenterVoidedBuilder;
+    }
 
     public function getSee(Company $company): See
     {
@@ -37,19 +51,31 @@ class GreenterService
             : SunatEndpoints::FE_BETA;
         $see->setService($endpoint);
 
+        $see->setClaveSOL(
+            $company->ruc,
+            $company->sol_user,
+            $company->sol_pass
+        );
+
         return $see;
     }
 
     /**
+     * Build and sign a sales document (Invoice, Boleta, Nota de Crédito, Nota de Débito).
+     *
      * @return array{xml: string, hash: string, xml_path: string}
      */
-    public function signDocument(Document $document, Invoice $invoice): array
+    public function signDocument(Document $document): array
     {
+        $saleModel = ($document->isCreditNote() || $document->isDebitNote())
+            ? $this->noteBuilder->build($document)
+            : $this->invoiceBuilder->build($document);
+
         $see = $this->getSee($document->company);
-        $xml = $see->getXmlSigned($invoice);
+        $xml = (string) $see->getXmlSigned($saleModel);
 
         $xmlUtils = new XmlUtils;
-        $hash = $xmlUtils->getHashSign($xml);
+        $hash = (string) $xmlUtils->getHashSign($xml);
 
         $xmlPath = $this->getDocumentStoragePath($document, 'xml');
         $disk = config('factos.storage_disk', 'local');
@@ -63,14 +89,40 @@ class GreenterService
     }
 
     /**
+     * Build and sign a Guía de Remisión Electrónica (Despatch).
+     *
+     * @return array{xml: string, hash: string, xml_path: string}
+     */
+    public function signDespatch(Despatch $despatch): array
+    {
+        $greenterDespatch = $this->despatchBuilder->build($despatch);
+
+        $see = $this->getSee($despatch->company);
+        $xml = (string) $see->getXmlSigned($greenterDespatch);
+
+        $xmlUtils = new XmlUtils;
+        $hash = (string) $xmlUtils->getHashSign($xml);
+
+        $xmlPath = $this->getDespatchStoragePath($despatch, 'xml');
+        $disk = config('factos.storage_disk', 'local');
+        Storage::disk($disk)->put($xmlPath, $xml);
+
+        return [
+            'xml' => $xml,
+            'hash' => $hash,
+            'xml_path' => $xmlPath,
+        ];
+    }
+
+    /**
      * Send already signed XML directly to SUNAT without re-signing (Idempotency).
      */
-    public function sendSignedXml(Document $document, string $signedXml): BillResult
+    public function sendSignedXml(Document|Despatch $model, string $signedXml): BillResult
     {
-        $company = $document->company;
+        $company = $model->company;
         $endpoint = $company->is_production
-            ? SunatEndpoints::FE_PRODUCCION
-            : SunatEndpoints::FE_BETA;
+            ? ($model instanceof Despatch ? SunatEndpoints::GUIA_PRODUCCION : SunatEndpoints::FE_PRODUCCION)
+            : ($model instanceof Despatch ? SunatEndpoints::GUIA_BETA : SunatEndpoints::FE_BETA);
 
         $soapClient = new SunatSoapClient;
         $soapClient->setService($endpoint);
@@ -82,17 +134,89 @@ class GreenterService
         $sender = new BillSender;
         $sender->setClient($soapClient);
 
-        $filename = $document->getSunatFileName(); // e.g. 20600055231-01-F001-452
+        $filename = $model->getSunatFileName();
 
-        return $sender->send($filename, $signedXml);
+        /** @var BillResult $result */
+        $result = $sender->send($filename, $signedXml);
+
+        return $result;
+    }
+
+    /**
+     * Sign and send a voiding communication (RA - Voided or RC - Summary).
+     *
+     * @return array{result: SummaryResult, xml: string, xml_path: string}
+     */
+    public function sendVoiding(Document $document, string $reason, int $correlative): array
+    {
+        $company = $document->company;
+        $see = $this->getSee($company);
+
+        $isFacturaOrNote = $document->isInvoice() || ($document->series[0] === 'F');
+
+        /** @var Voided|Summary $voidModel */
+        $voidModel = $isFacturaOrNote
+            ? $this->voidedBuilder->buildVoided($document, $reason, $correlative)
+            : $this->voidedBuilder->buildSummaryVoid($document, $reason, $correlative);
+
+        $xml = (string) $see->getXmlSigned($voidModel);
+
+        $prefix = $isFacturaOrNote ? 'RA' : 'RC';
+        $correlativeFormatted = str_pad((string) $correlative, 5, '0', STR_PAD_LEFT);
+        $xmlFileName = sprintf('%s-%s-%s-%s.xml', $company->ruc, $prefix, now()->format('Ymd'), $correlativeFormatted);
+
+        $xmlPath = sprintf(
+            'tenants/%s/%s/%s/voids/%s',
+            $company->ruc,
+            now()->format('Y'),
+            now()->format('m'),
+            $xmlFileName
+        );
+
+        $disk = config('factos.storage_disk', 'local');
+        Storage::disk($disk)->put($xmlPath, $xml);
+
+        /** @var SummaryResult $result */
+        $result = $see->send($voidModel);
+
+        return [
+            'result' => $result,
+            'xml' => $xml,
+            'xml_path' => $xmlPath,
+        ];
+    }
+
+    /**
+     * Check status of a ticket issued by SUNAT (for RA, RC, or Despatch).
+     */
+    public function checkTicketStatus(Company $company, string $ticket): StatusResult
+    {
+        $endpoint = $company->is_production
+            ? SunatEndpoints::FE_PRODUCCION
+            : SunatEndpoints::FE_BETA;
+
+        $soapClient = new SunatSoapClient;
+        $soapClient->setService($endpoint);
+        $soapClient->setCredentials(
+            $company->ruc.$company->sol_user,
+            $company->sol_pass
+        );
+
+        $sender = new ExtService;
+        $sender->setClient($soapClient);
+
+        return $sender->getStatus($ticket);
     }
 
     /**
      * Save CDR ZIP to storage.
      */
-    public function saveCdr(Document $document, string $cdrZipContent): string
+    public function saveCdr(Document|Despatch $model, string $cdrZipContent, bool $isVoid = false): string
     {
-        $cdrPath = $this->getDocumentStoragePath($document, 'zip', isCdr: true);
+        $cdrPath = $model instanceof Document
+            ? $this->getDocumentStoragePath($model, 'zip', isCdr: true, isVoid: $isVoid)
+            : $this->getDespatchStoragePath($model, 'zip', isCdr: true, isVoid: $isVoid);
+
         $disk = config('factos.storage_disk', 'local');
         Storage::disk($disk)->put($cdrPath, $cdrZipContent);
 
@@ -100,19 +224,40 @@ class GreenterService
     }
 
     /**
-     * Generates structured storage path per tenant:
+     * Generate storage path for tenant documents:
      * storage/app/tenants/{ruc}/{year}/{month}/{tipo-serie-correlativo}.ext
-     * or for CDR:
-     * storage/app/tenants/{ruc}/{year}/{month}/R-{tipo-serie-correlativo}.zip
      */
-    public function getDocumentStoragePath(Document $document, string $extension, bool $isCdr = false): string
+    public function getDocumentStoragePath(Document $document, string $extension, bool $isCdr = false, bool $isVoid = false): string
     {
-        $ruc = $document->company->ruc;
+        $company = $document->company;
         $year = $document->issue_date->format('Y');
         $month = $document->issue_date->format('m');
-        $prefix = $isCdr ? 'R-' : '';
-        $baseName = sprintf('%s%s-%s-%s.%s', $prefix, $document->type_code, $document->series, $document->correlative, $extension);
+        $baseName = sprintf('%s-%s-%s', $document->type_code, $document->series, $document->correlative);
+        $filename = $isCdr
+            ? sprintf('R-%s.%s', $baseName, $extension)
+            : sprintf('%s.%s', $baseName, $extension);
 
-        return "tenants/{$ruc}/{$year}/{$month}/{$baseName}";
+        if ($isVoid) {
+            $filename = 'VOID-'.$filename;
+        }
+
+        return sprintf('tenants/%s/%s/%s/%s', $company->ruc, $year, $month, $filename);
+    }
+
+    public function getDespatchStoragePath(Despatch $despatch, string $extension, bool $isCdr = false, bool $isVoid = false): string
+    {
+        $company = $despatch->company;
+        $year = $despatch->issue_date->format('Y');
+        $month = $despatch->issue_date->format('m');
+        $baseName = sprintf('%s-%s-%s', $despatch->type_code, $despatch->series, $despatch->correlative);
+        $filename = $isCdr
+            ? sprintf('R-%s.%s', $baseName, $extension)
+            : sprintf('%s.%s', $baseName, $extension);
+
+        if ($isVoid) {
+            $filename = 'VOID-'.$filename;
+        }
+
+        return sprintf('tenants/%s/%s/%s/despatches/%s', $company->ruc, $year, $month, $filename);
     }
 }
