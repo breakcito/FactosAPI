@@ -26,7 +26,7 @@ beforeEach(function () {
 
     Storage::disk('local')->put(
         'tenants/20600055231/cert.pem',
-        file_get_contents(base_path('docs/4-greenter/c-api-with-greenter-example-2/resources/cert.pem'))
+        file_get_contents(base_path('/cert.pem'))
     );
 });
 

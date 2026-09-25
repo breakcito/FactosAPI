@@ -29,7 +29,7 @@ class CertificateService
         }
 
         // Fallback for tests or local dev when custom cert is not yet uploaded
-        $fallback = base_path('docs/4-greenter/c-api-with-greenter-example-2/resources/cert.pem');
+        $fallback = base_path('/cert.pem');
         if (file_exists($fallback)) {
             $fallbackContent = file_get_contents($fallback);
             if ($fallbackContent !== false) {

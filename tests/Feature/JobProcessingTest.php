@@ -27,7 +27,7 @@ test('ProcessDocumentJob generates signed XML, PDF and dispatches SendDocumentTo
     $company = Company::factory()->create([
         'user_id' => $user->id,
         'ruc' => '20123456789',
-        'certificate_path' => 'docs/4-greenter/c-api-with-greenter-example-2/resources/cert.pem',
+        'certificate_path' => '/cert.pem',
     ]);
 
     $document = Document::factory()->create([

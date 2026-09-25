@@ -23,7 +23,7 @@ test('GreenterInvoiceBuilder and GreenterService sign document correctly and gen
         'business_name' => 'SERVICIOS TECNOLOGICOS S.A.C.',
         'sol_user' => 'MODDATOS',
         'sol_pass' => 'moddatos',
-        'certificate_path' => 'docs/4-greenter/c-api-with-greenter-example-2/resources/cert.pem',
+        'certificate_path' => '/cert.pem',
     ]);
 
     $document = Document::factory()->create([
