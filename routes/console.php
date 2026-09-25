@@ -2,4 +2,4 @@
 
 use Illuminate\Support\Facades\Schedule;
 
-// Schedule your tasks here.
+Schedule::command('documents:retry-waiting')->everyMinute();
