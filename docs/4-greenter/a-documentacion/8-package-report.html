@@ -1,0 +1,92 @@
+<div class="md-content" data-md-component="content"> <article class="md-content__inner md-typeset"> <h1 id="greenter-report">Greenter Report<a class="headerlink" href="#greenter-report" title="Permanent link">¶</a></h1> <p>Para elaborar una representación impresa se dispone de los formatos: HTML y PDF.</p> <h2 id="instalar">Instalar<a class="headerlink" href="#instalar" title="Permanent link">¶</a></h2> <div class="highlight"><pre><span></span><code>composer<span class="w"> </span>require<span class="w"> </span>greenter/report
+</code></pre></div> <h2 id="documentos">Documentos<a class="headerlink" href="#documentos" title="Permanent link">¶</a></h2> <p>Lista de documentos con reporte disponible.</p> <ul> <li>Factura </li> <li>Boleta de Venta</li> <li>Nota de Crédito </li> <li>Nota de Débito </li> <li>Guía de Remisión </li> <li>Comprobante de Retención </li> <li>Comprobante de Percepción</li> <li>Resumen diario de Boletas</li> <li>Comunicación de Bajas</li> <li>Resumen diario de Reversiones</li> </ul> <h2 id="uso">Uso<a class="headerlink" href="#uso" title="Permanent link">¶</a></h2> <p>Este ejemplo se base en el modelo de factura (<code>Invoice</code>), para generar un reporte HTML. </p> <div class="highlight"><pre><span></span><code tabindex="0"><span class="cp">&lt;?php</span>
+
+<span class="k">use</span> <span class="nx">Greenter\Model\Sale\Invoice</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Report\Resolver\DefaultTemplateResolver</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Report\HtmlReport</span><span class="p">;</span>
+
+<span class="nv">$invoice</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Invoice</span><span class="p">();</span>
+<span class="nv">$invoice</span><span class="o">-&gt;</span><span class="na">setSerie</span><span class="p">(</span><span class="s1">'F001'</span><span class="p">);</span>
+<span class="nv">$invoice</span><span class="o">-&gt;</span><span class="na">setCorrelativo</span><span class="p">(</span><span class="s1">'1'</span><span class="p">);</span>
+<span class="c1">// ...</span>
+
+<span class="nv">$report</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">HtmlReport</span><span class="p">();</span>
+
+<span class="nv">$resolver</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">DefaultTemplateResolver</span><span class="p">();</span>
+<span class="nv">$report</span><span class="o">-&gt;</span><span class="na">setTemplate</span><span class="p">(</span><span class="nv">$resolver</span><span class="o">-&gt;</span><span class="na">getTemplate</span><span class="p">(</span><span class="nv">$invoice</span><span class="p">));</span>
+
+<span class="nv">$params</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">'system'</span> <span class="o">=&gt;</span> <span class="p">[</span>
+        <span class="s1">'logo'</span> <span class="o">=&gt;</span> <span class="nb">file_get_contents</span><span class="p">(</span><span class="s1">'logo.png'</span><span class="p">),</span> <span class="c1">// Logo de Empresa</span>
+        <span class="s1">'hash'</span> <span class="o">=&gt;</span> <span class="s1">'qqnr2dN4p/HmaEA/CJuVGo7dv5g='</span><span class="p">,</span> <span class="c1">// Valor Resumen </span>
+    <span class="p">],</span>
+    <span class="s1">'user'</span> <span class="o">=&gt;</span> <span class="p">[</span>
+        <span class="s1">'header'</span>     <span class="o">=&gt;</span> <span class="s1">'Telf: &lt;b&gt;(01) 123375&lt;/b&gt;'</span><span class="p">,</span> <span class="c1">// Texto que se ubica debajo de la dirección de empresa</span>
+        <span class="s1">'extras'</span>     <span class="o">=&gt;</span> <span class="p">[</span>
+            <span class="c1">// Leyendas adicionales</span>
+            <span class="p">[</span><span class="s1">'name'</span> <span class="o">=&gt;</span> <span class="s1">'CONDICION DE PAGO'</span><span class="p">,</span> <span class="s1">'value'</span> <span class="o">=&gt;</span> <span class="s1">'Efectivo'</span>     <span class="p">],</span>
+            <span class="p">[</span><span class="s1">'name'</span> <span class="o">=&gt;</span> <span class="s1">'VENDEDOR'</span>         <span class="p">,</span> <span class="s1">'value'</span> <span class="o">=&gt;</span> <span class="s1">'GITHUB SELLER'</span><span class="p">],</span>
+        <span class="p">],</span>
+        <span class="s1">'footer'</span> <span class="o">=&gt;</span> <span class="s1">'&lt;p&gt;Nro Resolucion: &lt;b&gt;3232323&lt;/b&gt;&lt;/p&gt;'</span>
+    <span class="p">]</span>
+<span class="p">];</span>
+
+<span class="nv">$html</span> <span class="o">=</span> <span class="nv">$report</span><span class="o">-&gt;</span><span class="na">render</span><span class="p">(</span><span class="nv">$invoice</span><span class="p">,</span> <span class="nv">$params</span><span class="p">);</span>
+
+<span class="k">echo</span> <span class="nv">$html</span><span class="p">;</span>
+</code></pre></div> <h2 id="personalizar">Personalizar<a class="headerlink" href="#personalizar" title="Permanent link">¶</a></h2> <p>Puedes crear tus propios reportes usando <a href="https://twig.symfony.com/">twig</a>, puedes tener como base <a href="https://github.com/thegreenter/report/blob/master/src/Report/Templates/invoice.html.twig">invoice.html.twig</a>.</p> <p>Necesitas crear un directorio con las nuevas plantillas, en este ejemplo el directorio se llama <code>custom</code>.</p> <div class="highlight"><pre><span></span><code>│
+├─/custom/
+│     ├─ factura.html.twig
+│     ├─ nota-credito.html.twig
+│
+│
+</code></pre></div> <p>Configuración de <code>HtmlReport</code>.</p> <div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+
+<span class="k">use</span> <span class="nx">Greenter\Report\HtmlReport</span><span class="p">;</span>
+
+<span class="nv">$twigOptions</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">'cache'</span> <span class="o">=&gt;</span> <span class="no">__DIR__</span> <span class="o">.</span> <span class="s1">'/cache'</span><span class="p">,</span>
+    <span class="s1">'strict_variables'</span> <span class="o">=&gt;</span> <span class="k">true</span><span class="p">,</span>
+<span class="p">];</span>
+
+<span class="nv">$report</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">HtmlReport</span><span class="p">(</span><span class="s1">'/custom'</span><span class="p">,</span> <span class="nv">$twigOptions</span><span class="p">);</span>
+<span class="nv">$report</span><span class="o">-&gt;</span><span class="na">setTemplate</span><span class="p">(</span><span class="s1">'factura.html.twig'</span><span class="p">);</span>
+
+<span class="nv">$html</span> <span class="o">=</span> <span class="nv">$report</span><span class="o">-&gt;</span><span class="na">render</span><span class="p">(</span><span class="nv">$invoice</span><span class="p">,</span> <span class="nv">$params</span><span class="p">);</span>
+
+<span class="k">echo</span> <span class="nv">$html</span><span class="p">;</span>
+</code></pre></div> <h2 id="reporte-en-pdf">Reporte en PDF<a class="headerlink" href="#reporte-en-pdf" title="Permanent link">¶</a></h2> <p>Para obtener una representación en formato PDF, Utilizamos <a href="https://wkhtmltopdf.org/">wkhtmltopdf</a>.</p> <h3 id="instalar_1">Instalar<a class="headerlink" href="#instalar_1" title="Permanent link">¶</a></h3> <div class="highlight"><pre><span></span><code>composer<span class="w"> </span>require<span class="w"> </span>greenter/htmltopdf
+</code></pre></div> <div class="admonition warning"> <p class="admonition-title">Requerimientos</p> <p>Este paquete require que el ejecutable <code>wkhtmltopdf</code> este descargado o instalado en el host, y que el entorno de PHP permite ejecutar aplicaciones externas, es decir que el método <code>exec</code> no se encuentre incluido en la configuración <code>disable_functions</code> del <code>php.ini</code></p> <p>Puedes seguir este <a href="https://www.namecheap.com/support/knowledgebase/article.aspx/9396/2219/how-to-enable-exec">tutorial</a>.</p> </div> <h3 id="uso_1">Uso<a class="headerlink" href="#uso_1" title="Permanent link">¶</a></h3> <p><code>PdfReport</code> sigue el patrón <a href="https://es.wikipedia.org/wiki/Decorator_(patr%C3%B3n_de_dise%C3%B1o)">Decorator</a>, para generar el pdf a partir de <code>HtmlReport</code> o cualquier otra clase que implemente <a href="https://reference.greenter.dev/Greenter/Report/ReportInterface.html"><code>ReportInterface</code></a>.</p> <div class="highlight"><pre><span></span><code tabindex="0"><span class="cp">&lt;?php</span>
+
+<span class="k">use</span> <span class="nx">Greenter\Report\HtmlReport</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Report\PdfReport</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Model\Sale\Invoice</span><span class="p">;</span>
+
+<span class="nv">$invoice</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Invoice</span><span class="p">();</span>
+<span class="c1">// ...</span>
+
+<span class="nv">$htmlReport</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">HtmlReport</span><span class="p">();</span>
+<span class="nv">$html</span><span class="o">-&gt;</span><span class="na">setTemplate</span><span class="p">(</span><span class="s1">'invoice.html.twig'</span><span class="p">);</span>
+
+<span class="nv">$report</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">PdfReport</span><span class="p">(</span><span class="nv">$htmlReport</span><span class="p">);</span>
+<span class="c1">// Options: Ver mas en https://wkhtmltopdf.org/usage/wkhtmltopdf.txt</span>
+<span class="nv">$report</span><span class="o">-&gt;</span><span class="na">setOptions</span><span class="p">(</span> <span class="p">[</span>
+    <span class="s1">'no-outline'</span><span class="p">,</span>
+    <span class="s1">'viewport-size'</span> <span class="o">=&gt;</span> <span class="s1">'1280x1024'</span><span class="p">,</span>
+    <span class="s1">'page-width'</span> <span class="o">=&gt;</span> <span class="s1">'21cm'</span><span class="p">,</span>
+    <span class="s1">'page-height'</span> <span class="o">=&gt;</span> <span class="s1">'29.7cm'</span><span class="p">,</span>
+<span class="p">]);</span>
+<span class="nv">$report</span><span class="o">-&gt;</span><span class="na">setBinPath</span><span class="p">(</span><span class="s1">'wkhtmltopdf.exe'</span><span class="p">);</span> <span class="c1">// Ruta relativa o absoluta de wkhtmltopdf</span>
+<span class="c1">// Los mismo parametros utilizados en HTML Report</span>
+<span class="nv">$params</span> <span class="o">=</span> <span class="p">[</span><span class="cm">/*...*/</span><span class="p">];</span>
+
+<span class="nv">$pdf</span> <span class="o">=</span> <span class="nv">$report</span><span class="o">-&gt;</span><span class="na">render</span><span class="p">(</span><span class="nv">$invoice</span><span class="p">,</span> <span class="nv">$params</span><span class="p">);</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="nv">$pdf</span> <span class="o">===</span> <span class="k">null</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nv">$error</span> <span class="o">=</span> <span class="nv">$report</span><span class="o">-&gt;</span><span class="na">getExporter</span><span class="p">()</span><span class="o">-&gt;</span><span class="na">getError</span><span class="p">();</span>
+    <span class="k">echo</span> <span class="s1">'Error: '</span><span class="o">.</span><span class="nv">$error</span><span class="p">;</span>
+    <span class="k">return</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="nb">file_put_contents</span><span class="p">(</span><span class="s1">'invoice.pdf'</span><span class="p">,</span> <span class="nv">$pdf</span><span class="p">);</span>
+</code></pre></div> <h2 id="previsualizacion">Previsualización<a class="headerlink" href="#previsualizacion" title="Permanent link">¶</a></h2> <p><a href="/files/greenter-factura-preview.pdf"><img alt="greenter factura PDF" src="/img/greenter-factura-pdf.png"></a></p> </article> </div>

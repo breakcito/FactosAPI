@@ -1,0 +1,52 @@
+<div class="md-content" data-md-component="content"> <article class="md-content__inner md-typeset"> <h1 id="greener-xmldsig">Greener XMLDsig<a class="headerlink" href="#greener-xmldsig" title="Permanent link">¶</a></h1> <p>Esta libreria permite realizar la firma digital de los documentos XML con un certificado electrónico, siguiendo la normativa de SUNAT.</p> <h2 id="instalar">Instalar<a class="headerlink" href="#instalar" title="Permanent link">¶</a></h2> <div class="highlight"><pre><span></span><code>composer<span class="w"> </span>require<span class="w"> </span>greenter/xmldsig
+</code></pre></div> <div class="admonition warning"> <p class="admonition-title">Requerimientos</p> <p>Se necesitar tener habilitado la extension <code>openssl</code> en <code>php.ini</code></p> <div class="highlight"><pre><span></span><code><span class="na">extension</span><span class="o">=</span><span class="s">openssl</span>
+</code></pre></div> </div> <h2 id="uso">Uso<a class="headerlink" href="#uso" title="Permanent link">¶</a></h2> <p>Para este ejemplo necesitamos un archivo XML previamente generado, debemos asegurarnos de incluir la etiqueta <code class="highlight"><span class="nt">&lt;ext:ExtensionContent/&gt;</span></code>, que es donde se agregará el nodod de la firma. </p> <p></p><div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+
+<span class="k">use</span> <span class="nx">Greenter\XMLSecLibs\Sunat\SignedXml</span><span class="p">;</span>
+
+<span class="nv">$xml</span> <span class="o">=</span> <span class="nb">file_get_contents</span><span class="p">(</span><span class="s1">'20600995805-01-F001-1.xml'</span><span class="p">);</span>
+<span class="nv">$cert</span> <span class="o">=</span> <span class="nb">file_get_contents</span><span class="p">(</span><span class="s1">'certifcate.pem'</span><span class="p">);</span>
+
+<span class="nv">$signer</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">SignedXml</span><span class="p">();</span>
+<span class="nv">$signer</span><span class="o">-&gt;</span><span class="na">setCertificate</span><span class="p">(</span><span class="nv">$cert</span><span class="p">);</span>
+
+<span class="nv">$xmlSigned</span> <span class="o">=</span> <span class="nv">$signer</span><span class="o">-&gt;</span><span class="na">signXml</span><span class="p">(</span><span class="nv">$xml</span><span class="p">);</span>
+
+<span class="nb">file_put_contents</span><span class="p">(</span><span class="s2">"signed.xml"</span><span class="p">,</span> <span class="nv">$xmlSigned</span><span class="p">);</span>
+</code></pre></div> El resultado seria:<p></p> <div class="highlight"><pre><span></span><code tabindex="0"><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+<span class="nt">&lt;Invoice</span><span class="w"> </span><span class="na">xmlns=</span><span class="s">"urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"</span><span class="w"> </span><span class="na">xmlns:cac=</span><span class="s">"urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"</span><span class="w"> </span><span class="na">xmlns:cbc=</span><span class="s">"urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"</span><span class="w"> </span><span class="na">xmlns:ds=</span><span class="s">"http://www.w3.org/2000/09/xmldsig#"</span><span class="w"> </span><span class="na">xmlns:ext=</span><span class="s">"urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2"</span><span class="nt">&gt;</span>
+<span class="w">   </span><span class="nt">&lt;ext:UBLExtensions&gt;</span>
+<span class="w">    </span><span class="nt">&lt;ext:UBLExtension&gt;</span>
+<span class="w">      </span><span class="nt">&lt;ext:ExtensionContent&gt;</span>
+<span class="w">            </span><span class="nt">&lt;ds:Signature</span><span class="w"> </span><span class="na">Id=</span><span class="s">"SignIMM"</span><span class="nt">&gt;</span>
+<span class="w">                </span><span class="nt">&lt;ds:SignedInfo&gt;</span>
+<span class="w">                    </span><span class="nt">&lt;ds:CanonicalizationMethod</span><span class="w"> </span><span class="na">Algorithm=</span><span class="s">"http://www.w3.org/TR/2001/REC-xml-c14n-20010315"</span><span class="nt">/&gt;</span>
+<span class="w">                    </span><span class="nt">&lt;ds:SignatureMethod</span><span class="w"> </span><span class="na">Algorithm=</span><span class="s">"http://www.w3.org/2000/09/xmldsig#rsa-sha1"</span><span class="nt">/&gt;</span>
+<span class="w">                    </span><span class="nt">&lt;ds:Reference</span><span class="w"> </span><span class="na">URI=</span><span class="s">""</span><span class="nt">&gt;</span>
+<span class="w">                    </span><span class="nt">&lt;ds:Transforms&gt;</span>
+<span class="w">                        </span><span class="nt">&lt;ds:Transform</span><span class="w"> </span><span class="na">Algorithm=</span><span class="s">"http://www.w3.org/2000/09/xmldsig#enveloped-signature"</span><span class="nt">/&gt;</span>
+<span class="w">                    </span><span class="nt">&lt;/ds:Transforms&gt;</span>
+<span class="w">                    </span><span class="nt">&lt;ds:DigestMethod</span><span class="w"> </span><span class="na">Algorithm=</span><span class="s">"http://www.w3.org/2000/09/xmldsig#sha1"</span><span class="nt">/&gt;</span>
+<span class="hll"><span class="w">                    </span><span class="nt">&lt;ds:DigestValue&gt;</span>IwJuNQGQaHmmm3iv2jj8JDv70Ow=<span class="nt">&lt;/ds:DigestValue&gt;</span>
+</span><span class="w">                    </span><span class="nt">&lt;/ds:Reference&gt;</span>
+<span class="w">                </span><span class="nt">&lt;/ds:SignedInfo&gt;</span>
+<span class="w">                </span><span class="nt">&lt;ds:SignatureValue&gt;</span>
+<span class="hll"><span class="w">                </span>nLaghokzMNrmrfPnbIg9b...WluZTE1UiLFwZXXXPUlf2o=
+</span><span class="w">                </span><span class="nt">&lt;/ds:SignatureValue&gt;</span>
+<span class="w">                </span><span class="nt">&lt;ds:KeyInfo&gt;</span>
+<span class="w">                    </span><span class="nt">&lt;ds:X509Data&gt;</span>
+<span class="w">                        </span><span class="nt">&lt;ds:X509Certificate&gt;</span>
+<span class="hll"><span class="w">                        </span>MIIFhzCCA3OgAwI...BgNVBAYTAlVTVQQIEwVNYWluZTEgMOiRJ00nE=
+</span><span class="w">                        </span><span class="nt">&lt;/ds:X509Certificate&gt;</span>
+<span class="w">                    </span><span class="nt">&lt;/ds:X509Data&gt;</span>
+<span class="w">                </span><span class="nt">&lt;/ds:KeyInfo&gt;</span>
+<span class="w">            </span><span class="nt">&lt;/ds:Signature&gt;</span>
+<span class="w">      </span><span class="nt">&lt;/ext:ExtensionContent&gt;</span>
+<span class="w">    </span><span class="nt">&lt;/ext:UBLExtension&gt;</span>
+<span class="w">   </span><span class="nt">&lt;/ext:UBLExtensions&gt;</span>
+<span class="w">   </span><span class="nt">&lt;cbc:UBLVersionID&gt;</span>2.1<span class="nt">&lt;/cbc:UBLVersionID&gt;</span>
+<span class="w">   </span><span class="nt">&lt;cbc:CustomizationID&gt;</span>2.0<span class="nt">&lt;/cbc:CustomizationID&gt;</span>
+<span class="w">   </span><span class="nt">&lt;cbc:ID&gt;</span>F001-1<span class="nt">&lt;/cbc:ID&gt;</span>
+<span class="cm">&lt;!--....--&gt;</span>
+<span class="nt">&lt;/Invoice&gt;</span>
+</code></pre></div> <p>Datos a considerar: <br> <code class="highlight"><span class="nt">&lt;ds:DigestValue&gt;</span></code>: Valor Resumen codificado en <code>base64</code>, utilizado en la representación impresa y codigo QR. <br> <code class="highlight"><span class="nt">&lt;ds:SignatureValue&gt;</span></code>: Valor de la Firma codificado en <code>base64</code>. <br> <code class="highlight"><span class="nt">&lt;ds:X509Certificate&gt;</span></code>: Contenido del certificado, necesario para verificar la autenticidad del documento. </p> <div class="admonition info"> <p class="admonition-title">Otros formatos de certificado</p> <p>Puedes seguir esta <a href="https://github.com/thegreenter/xmldsig/blob/master/CONVERT.md">guía</a>, para convertir un certificado al formato requerido. </p> </div> </article> </div>

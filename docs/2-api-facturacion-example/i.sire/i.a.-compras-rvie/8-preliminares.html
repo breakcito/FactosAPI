@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Document</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body>
+
+        <div class="max-w-2xl space-y-8"><div class="mb-8"><h1 class="text-2xl font-bold text-gray-900 mb-2">Preliminares registrados</h1><p class="text-gray-500 text-sm mb-4 leading-relaxed">Consulta si el período tiene un preliminar registrado. Úsalo para obtener el id necesario antes de revertir con Eliminar preliminar registrado.</p><div class="flex items-start gap-3 px-4 py-3 rounded-xl font-mono border" style="background-color: rgb(234, 245, 252); border-color: rgb(184, 221, 244);"><span class="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-mono font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 ">GET</span><span class="text-sm break-all" style="color: rgb(30, 111, 159);">https://api.facturalo.pe/api/v3/sire/compras/{periodo}/preliminares</span></div></div><div class="mb-8"><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Parámetros</h3><div class="border border-gray-200 rounded-xl overflow-hidden"><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 hover:bg-gray-50"><div class="w-52 shrink-0"><code class="text-blue-600 font-mono text-xs">periodo</code><div class="flex items-center gap-1.5 mt-1"><span class="text-gray-400 text-xs font-mono">string</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5">Período tributario YYYYMM.<span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">202605</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 hover:bg-gray-50"><div class="w-52 shrink-0"><code class="text-blue-600 font-mono text-xs">page</code><div class="flex items-center gap-1.5 mt-1"><span class="text-gray-400 text-xs font-mono">number</span><span class="text-xs text-gray-300">opcional</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5">Página. Default: 1.<span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">1</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm  hover:bg-gray-50"><div class="w-52 shrink-0"><code class="text-blue-600 font-mono text-xs">perPage</code><div class="flex items-center gap-1.5 mt-1"><span class="text-gray-400 text-xs font-mono">number</span><span class="text-xs text-gray-300">opcional</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5">Registros por página. Default: 100.<span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">100</code></span></div></div></div></div><div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Respuesta exitosa</h3><div class="group relative rounded-xl overflow-hidden border" style="background-color: rgb(246, 248, 250); border-color: rgb(226, 232, 240);"><div class="flex items-center justify-between px-4 py-2 border-b" style="background-color: rgb(238, 240, 243); border-color: rgb(226, 232, 240);"><span class="text-xs font-mono" style="color: rgb(107, 114, 128);">200 OK</span><span class="text-xs uppercase tracking-wider" style="color: rgb(156, 163, 175);">json</span></div><div class="relative"><pre class="overflow-x-auto p-4 text-sm leading-relaxed font-mono scrollbar-thin" style="color: rgb(55, 65, 81);"><code>{
+  <span style="color:#1a56a0">"success":</span> <span style="color:#b45309">true</span>,
+  <span style="color:#1a56a0">"message":</span> <span style="color:#2d7a3a">"Preliminares registrados obtenidos correctamente."</span>,
+  <span style="color:#1a56a0">"data":</span> {
+    <span style="color:#1a56a0">"paginacion":</span> {
+      <span style="color:#1a56a0">"page":</span> <span style="color:#b45309">1</span>,
+      <span style="color:#1a56a0">"perPage":</span> <span style="color:#b45309">100</span>,
+      <span style="color:#1a56a0">"totalRegistros":</span> <span style="color:#b45309">1</span>
+    },
+    <span style="color:#1a56a0">"registros":</span> [
+      {
+        <span style="color:#1a56a0">"id":</span> <span style="color:#2d7a3a">"7b42c1f9b15a15e430ea55c9"</span>,
+        <span style="color:#1a56a0">"numRuc":</span> <span style="color:#2d7a3a">"20609872277"</span>,
+        <span style="color:#1a56a0">"perTributario":</span> <span style="color:#2d7a3a">"202605"</span>,
+        <span style="color:#1a56a0">"codTipoRegistro":</span> <span style="color:#2d7a3a">"3"</span>,
+        <span style="color:#1a56a0">"desTipoRegistro":</span> <span style="color:#2d7a3a">"Registro RCE"</span>,
+        <span style="color:#1a56a0">"desEstadoRegistro":</span> <span style="color:#2d7a3a">"En Generacion de Registro"</span>,
+        <span style="color:#1a56a0">"desInfoPreliminar":</span> <span style="color:#2d7a3a">"Registrado"</span>,
+        <span style="color:#1a56a0">"fechaGeneracionPreliminar":</span> <span style="color:#2d7a3a">"20260616160000"</span>,
+        <span style="color:#1a56a0">"operacion":</span> {
+          <span style="color:#1a56a0">"codAnotacion":</span> <span style="color:#2d7a3a">"1"</span>,
+          <span style="color:#1a56a0">"desAnotacion":</span> <span style="color:#2d7a3a">"Propuesta Aceptada"</span>,
+          <span style="color:#1a56a0">"cntRegistros":</span> <span style="color:#b45309">245</span>
+        }
+      }
+    ]
+  }
+}</code></pre><button class="absolute top-3 right-3 p-1.5 rounded-lg border transition-all opacity-0 group-hover:opacity-100 shadow-sm" title="Copiar" style="background-color: rgb(255, 255, 255); border-color: rgb(226, 232, 240); color: rgb(156, 163, 175);"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg></button></div></div></div><div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Sin preliminares</h3><div class="group relative rounded-xl overflow-hidden border" style="background-color: rgb(246, 248, 250); border-color: rgb(226, 232, 240);"><div class="flex items-center justify-between px-4 py-2 border-b" style="background-color: rgb(238, 240, 243); border-color: rgb(226, 232, 240);"><span class="text-xs font-mono" style="color: rgb(107, 114, 128);">200 OK</span><span class="text-xs uppercase tracking-wider" style="color: rgb(156, 163, 175);">json</span></div><div class="relative"><pre class="overflow-x-auto p-4 text-sm leading-relaxed font-mono scrollbar-thin" style="color: rgb(55, 65, 81);"><code>{
+  <span style="color:#1a56a0">"success":</span> <span style="color:#b45309">true</span>,
+  <span style="color:#1a56a0">"message":</span> <span style="color:#2d7a3a">"No hay preliminares registrados en el período seleccionado."</span>,
+  <span style="color:#1a56a0">"data":</span> {
+    <span style="color:#1a56a0">"paginacion":</span> {
+      <span style="color:#1a56a0">"totalRegistros":</span> <span style="color:#b45309">0</span>
+    },
+    <span style="color:#1a56a0">"registros":</span> []
+  }
+}</code></pre><button class="absolute top-3 right-3 p-1.5 rounded-lg border transition-all opacity-0 group-hover:opacity-100 shadow-sm" title="Copiar" style="background-color: rgb(255, 255, 255); border-color: rgb(226, 232, 240); color: rgb(156, 163, 175);"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg></button></div></div></div><div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Usa el <code>id</code> y <code>codTipoRegistro</code> exactos de la respuesta al llamar <strong>Eliminar preliminar registrado</strong>.</div></div>
+    </body>
+</html>

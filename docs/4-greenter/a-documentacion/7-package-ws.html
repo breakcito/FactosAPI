@@ -1,0 +1,166 @@
+<div class="md-content" data-md-component="content"> <article class="md-content__inner md-typeset"> <h1 id="greenter-webservices">Greenter WebServices<a class="headerlink" href="#greenter-webservices" title="Permanent link">¶</a></h1> <p>Esta libreria permite establecer la conexión con los servicios de SUNAT, para realizar la comunicación de los comprobantes electrónicos emitidos. Internamente la libreria comprime los comprobantes (archivos XML) antes de enviarlo a SUNAT bajo el protocolo <code>SOAP</code>, despues de recibir el comprobante de recepción (CDR) extrae la respuesta para saber el estado del comprobante (Aprobado, Rechazado, Observaciones). </p> <h2 id="instalar">Instalar<a class="headerlink" href="#instalar" title="Permanent link">¶</a></h2> <div class="highlight"><pre><span></span><code>composer<span class="w"> </span>require<span class="w"> </span>greenter/ws
+</code></pre></div> <div class="admonition warning"> <p class="admonition-title">Requerimientos</p> <p>Se necesitar tener habilitado las extensiones <code>soap</code> en <code>php.ini</code></p> <div class="highlight"><pre><span></span><code><span class="na">extension</span><span class="o">=</span><span class="s">soap</span>
+<span class="na">extension</span><span class="o">=</span><span class="s">fileinfo</span>
+</code></pre></div> </div> <h2 id="uso">Uso<a class="headerlink" href="#uso" title="Permanent link">¶</a></h2> <p>Para este ejemplo necesitamos un documento XML firmado, y para autenticarnos en los servicios de SUNAT, la clave SOL, que para los servicios BETA son:</p> <ul> <li>User: <code>20000000001MODDATOS</code> <em>(ruc + usuario SOL)</em></li> <li>Password: <code>moddatos</code></li> </ul> <div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+<span class="k">use</span> <span class="nx">Greenter\Ws\Services\SoapClient</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Ws\Services\BillSender</span><span class="p">;</span>
+
+<span class="k">require</span> <span class="s1">'vendor/autoload.php'</span><span class="p">;</span>
+
+<span class="c1">// URL del servicio para Facturas (BETA ó PRODUCCION).</span>
+<span class="nv">$urlService</span> <span class="o">=</span> <span class="s1">'https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService'</span><span class="p">;</span>
+<span class="nv">$soap</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">SoapClient</span><span class="p">();</span>
+<span class="nv">$soap</span><span class="o">-&gt;</span><span class="na">setService</span><span class="p">(</span><span class="nv">$urlService</span><span class="p">);</span>
+<span class="nv">$soap</span><span class="o">-&gt;</span><span class="na">setCredentials</span><span class="p">(</span><span class="s1">'20000000001MODDATOS'</span><span class="p">,</span> <span class="s1">'moddatos'</span><span class="p">);</span>
+<span class="nv">$sender</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">BillSender</span><span class="p">();</span>
+<span class="nv">$sender</span><span class="o">-&gt;</span><span class="na">setClient</span><span class="p">(</span><span class="nv">$soap</span><span class="p">);</span>
+
+<span class="nv">$xml</span> <span class="o">=</span> <span class="nb">file_get_contents</span><span class="p">(</span><span class="s1">'factura.xml'</span><span class="p">);</span>
+<span class="nv">$result</span> <span class="o">=</span> <span class="nv">$sender</span><span class="o">-&gt;</span><span class="na">send</span><span class="p">(</span><span class="s1">'20000000001-01-F001-1'</span><span class="p">,</span> <span class="nv">$xml</span><span class="p">);</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nv">$result</span><span class="o">-&gt;</span><span class="na">isSuccess</span><span class="p">())</span> <span class="p">{</span>
+    <span class="c1">// Error en la conexion con el servicio de SUNAT</span>
+    <span class="nb">var_dump</span><span class="p">(</span><span class="nv">$result</span><span class="o">-&gt;</span><span class="na">getError</span><span class="p">());</span>
+    <span class="k">return</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="nv">$cdr</span> <span class="o">=</span> <span class="nv">$result</span><span class="o">-&gt;</span><span class="na">getCdrResponse</span><span class="p">();</span>
+<span class="nb">file_put_contents</span><span class="p">(</span><span class="s1">'R-20000000001-01-F001-1.zip'</span><span class="p">,</span> <span class="nv">$result</span><span class="o">-&gt;</span><span class="na">getCdrZip</span><span class="p">());</span>
+
+<span class="c1">// Verificar CDR (Factura aceptada o rechazada)</span>
+<span class="nv">$code</span> <span class="o">=</span> <span class="p">(</span><span class="nx">int</span><span class="p">)</span><span class="nv">$cdr</span><span class="o">-&gt;</span><span class="na">getCode</span><span class="p">();</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="nv">$code</span> <span class="o">===</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">echo</span> <span class="s1">'ESTADO: ACEPTADA'</span><span class="o">.</span><span class="nx">PHP_EOL</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">count</span><span class="p">(</span><span class="nv">$cdr</span><span class="o">-&gt;</span><span class="na">getNotes</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">echo</span> <span class="s1">'INCLUYE OBSERVACIONES:'</span><span class="o">.</span><span class="nx">PHP_EOL</span><span class="p">;</span>
+        <span class="c1">// Mostrar observaciones</span>
+        <span class="k">foreach</span> <span class="p">(</span><span class="nv">$cdr</span><span class="o">-&gt;</span><span class="na">getNotes</span><span class="p">()</span> <span class="k">as</span> <span class="nv">$obs</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">echo</span> <span class="s1">'OBS: '</span><span class="o">.</span><span class="nv">$obs</span><span class="o">.</span><span class="nx">PHP_EOL</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nv">$code</span> <span class="o">&gt;=</span> <span class="mi">2000</span> <span class="o">&amp;&amp;</span> <span class="nv">$code</span> <span class="o">&lt;=</span> <span class="mi">3999</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">echo</span> <span class="s1">'ESTADO: RECHAZADA'</span><span class="o">.</span><span class="nx">PHP_EOL</span><span class="p">;</span>
+
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="cm">/* Esto no debería darse, pero si ocurre, es un CDR inválido que debería tratarse como un error-excepción. */</span>
+    <span class="cm">/*code: 0100 a 1999 */</span>
+    <span class="k">echo</span> <span class="s1">'Excepción'</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">echo</span> <span class="nv">$cdr</span><span class="o">-&gt;</span><span class="na">getDescription</span><span class="p">()</span><span class="o">.</span><span class="nx">PHP_EOL</span><span class="p">;</span>
+</code></pre></div> <p>Esta es una referencia de las clases a utilizar segun el tipo de comprobante.</p> <ul> <li><code>BillSender</code><ul> <li>Factura</li> <li>Boleta de Venta</li> <li>Notas de Crédito</li> <li>Notas de Débito</li> <li>Comprobante de Percepción</li> <li>Comprobante de Retención</li> </ul> </li> <li><code>SummarySender</code><ul> <li>Resumen Diario de Boletas</li> <li>Comunicación de Baja</li> <li>Resumen de Reversiones (dar de baja C. de Percepción y Retención)</li> </ul> </li> </ul> <h2 id="resumen-diario">Resumen diario<a class="headerlink" href="#resumen-diario" title="Permanent link">¶</a></h2> <p>El resumen diario tiene un proceso diferente al de las facturas, se tiene que realizar una segunda petición al servicio, para obtener la respuesta de un resumen diario previamente enviado. En el envio inicial, SUNAT nos retorna un número de <strong>Ticket</strong> que es el que usaremos para consultar el estado. </p> <div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+<span class="k">use</span> <span class="nx">Greenter\Ws\Services\SoapClient</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Ws\Services\SummarySender</span><span class="p">;</span>
+
+<span class="k">require</span> <span class="s1">'vendor/autoload.php'</span><span class="p">;</span>
+
+<span class="c1">// URL del servicio, el mismo de Facturas.</span>
+<span class="nv">$urlService</span> <span class="o">=</span> <span class="s1">'https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService'</span><span class="p">;</span>
+<span class="nv">$soap</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">SoapClient</span><span class="p">();</span>
+<span class="nv">$soap</span><span class="o">-&gt;</span><span class="na">setService</span><span class="p">(</span><span class="nv">$urlService</span><span class="p">);</span>
+<span class="nv">$soap</span><span class="o">-&gt;</span><span class="na">setCredentials</span><span class="p">(</span><span class="s1">'20000000001MODDATOS'</span><span class="p">,</span> <span class="s1">'moddatos'</span><span class="p">);</span>
+<span class="nv">$sender</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">SummarySender</span><span class="p">();</span>
+<span class="nv">$sender</span><span class="o">-&gt;</span><span class="na">setClient</span><span class="p">(</span><span class="nv">$soap</span><span class="p">);</span>
+
+<span class="nv">$xml</span> <span class="o">=</span> <span class="nb">file_get_contents</span><span class="p">(</span><span class="s1">'resumen.xml'</span><span class="p">);</span>
+<span class="nv">$result</span> <span class="o">=</span> <span class="nv">$sender</span><span class="o">-&gt;</span><span class="na">send</span><span class="p">(</span><span class="s1">'20000000001-RC-20200728-1'</span><span class="p">,</span> <span class="nv">$xml</span><span class="p">);</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nv">$result</span><span class="o">-&gt;</span><span class="na">isSuccess</span><span class="p">())</span> <span class="p">{</span>
+    <span class="c1">// Error en la conexion con el servicio de SUNAT</span>
+    <span class="nb">var_dump</span><span class="p">(</span><span class="nv">$result</span><span class="o">-&gt;</span><span class="na">getError</span><span class="p">());</span>
+    <span class="k">return</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// Guardar el ticket en el sistema, servira para consultar el estado del documento. </span>
+<span class="nv">$ticket</span> <span class="o">=</span> <span class="nv">$result</span><span class="o">-&gt;</span><span class="na">getTicket</span><span class="p">();</span>
+
+<span class="k">echo</span> <span class="nv">$ticket</span><span class="p">;</span>
+</code></pre></div> <p>Consultar el estado del documento enviado (Resumen diario, C. de Baja, R. Reversion). </p><div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+
+<span class="k">use</span> <span class="nx">Greenter\Ws\Services\SoapClient</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Ws\Services\ExtService</span><span class="p">;</span>
+
+<span class="k">require</span> <span class="s1">'vendor/autoload.php'</span><span class="p">;</span>
+
+<span class="c1">// Número de ticket obtenido en el paso anterior.</span>
+<span class="nv">$ticket</span> <span class="o">=</span> <span class="s1">'1599432082640'</span><span class="p">;</span> 
+
+<span class="c1">// URL del servicio.</span>
+<span class="nv">$urlService</span> <span class="o">=</span> <span class="s1">'https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService'</span><span class="p">;</span>
+<span class="nv">$soap</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">SoapClient</span><span class="p">();</span>
+<span class="nv">$soap</span><span class="o">-&gt;</span><span class="na">setService</span><span class="p">(</span><span class="nv">$urlService</span><span class="p">);</span>
+<span class="nv">$soap</span><span class="o">-&gt;</span><span class="na">setCredentials</span><span class="p">(</span><span class="s1">'20000000001MODDATOS'</span><span class="p">,</span> <span class="s1">'moddatos'</span><span class="p">);</span>
+<span class="nv">$statusService</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ExtService</span><span class="p">();</span>
+<span class="nv">$statusService</span><span class="o">-&gt;</span><span class="na">setClient</span><span class="p">(</span><span class="nv">$soap</span><span class="p">);</span>
+
+<span class="nv">$status</span> <span class="o">=</span> <span class="nv">$statusService</span><span class="o">-&gt;</span><span class="na">getStatus</span><span class="p">(</span><span class="nv">$ticket</span><span class="p">);</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nv">$status</span><span class="o">-&gt;</span><span class="na">isSuccess</span><span class="p">())</span> <span class="p">{</span>
+    <span class="c1">// Error en la conexion con el servicio de SUNAT</span>
+    <span class="nb">var_dump</span><span class="p">(</span><span class="nv">$status</span><span class="p">);</span>
+    <span class="k">return</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="nv">$cdr</span> <span class="o">=</span> <span class="nv">$status</span><span class="o">-&gt;</span><span class="na">getCdrResponse</span><span class="p">();</span>
+<span class="nb">file_put_contents</span><span class="p">(</span><span class="s1">'R-20000000001-RC-20200728-1.zip'</span><span class="p">,</span> <span class="nv">$status</span><span class="o">-&gt;</span><span class="na">getCdrZip</span><span class="p">());</span>
+<span class="nb">var_dump</span><span class="p">(</span><span class="nv">$cdr</span><span class="p">);</span>
+
+
+<span class="c1">// Verificar CDR (Resumen aceptado o rechazado)</span>
+<span class="nv">$code</span> <span class="o">=</span> <span class="p">(</span><span class="nx">int</span><span class="p">)</span><span class="nv">$cdr</span><span class="o">-&gt;</span><span class="na">getCode</span><span class="p">();</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="nv">$code</span> <span class="o">===</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">echo</span> <span class="s1">'ESTADO: ACEPTADA'</span><span class="o">.</span><span class="nx">PHP_EOL</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">count</span><span class="p">(</span><span class="nv">$cdr</span><span class="o">-&gt;</span><span class="na">getNotes</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">echo</span> <span class="s1">'INCLUYE OBSERVACIONES:'</span><span class="o">.</span><span class="nx">PHP_EOL</span><span class="p">;</span>
+        <span class="c1">// Mostrar observaciones</span>
+        <span class="k">foreach</span> <span class="p">(</span><span class="nv">$cdr</span><span class="o">-&gt;</span><span class="na">getNotes</span><span class="p">()</span> <span class="k">as</span> <span class="nv">$obs</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">echo</span> <span class="s1">'OBS: '</span><span class="o">.</span><span class="nv">$obs</span><span class="o">.</span><span class="nx">PHP_EOL</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nv">$code</span> <span class="o">&gt;=</span> <span class="mi">2000</span> <span class="o">&amp;&amp;</span> <span class="nv">$code</span> <span class="o">&lt;=</span> <span class="mi">3999</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">echo</span> <span class="s1">'ESTADO: RECHAZADA'</span><span class="o">.</span><span class="nx">PHP_EOL</span><span class="p">;</span>
+
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="cm">/* Esto no debería darse, pero si ocurre, es un CDR inválido que debería tratarse como un error-excepción. */</span>
+    <span class="cm">/*code: 0100 a 1999 */</span>
+    <span class="k">echo</span> <span class="s1">'Excepción'</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><p></p> <div class="admonition info"> <p class="admonition-title">Comunicación de Baja</p> <p>La comunicación de baja y resumen de reversión siguen el mismo proceso.</p> </div> <h2 id="consulta-cdr">Consulta CDR<a class="headerlink" href="#consulta-cdr" title="Permanent link">¶</a></h2> <p>Si por algún motivo no disponemos del <code>CDR</code>, lo podemos volver a obtener consultando al servicio de SUNAT, pero tener en cuenta que solo es posible en Producción y solo esta disponible para <strong>Facturas</strong> y <strong>Notas de Crédito/Débito</strong> relacionada a facturas.</p> <div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+
+<span class="k">use</span> <span class="nx">Greenter\Ws\Services\ConsultCdrService</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Ws\Services\SoapClient</span><span class="p">;</span>
+
+<span class="k">require</span> <span class="s1">'vendor/autoload.php'</span><span class="p">;</span>
+
+<span class="c1">// URL CDR de Producción</span>
+<span class="nv">$wsdlUrl</span> <span class="o">=</span> <span class="s1">'https://e-factura.sunat.gob.pe/ol-it-wsconscpegem/billConsultService?wsdl'</span><span class="p">;</span>
+<span class="nv">$soap</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">SoapClient</span><span class="p">(</span><span class="nv">$wsdlUrl</span><span class="p">);</span>
+<span class="nv">$soap</span><span class="o">-&gt;</span><span class="na">setCredentials</span><span class="p">(</span><span class="s1">'20000000001MODDATOS'</span><span class="p">,</span> <span class="s1">'moddatos'</span><span class="p">);</span>
+
+<span class="nv">$service</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ConsultCdrService</span><span class="p">();</span>
+<span class="nv">$service</span><span class="o">-&gt;</span><span class="na">setClient</span><span class="p">(</span><span class="nv">$soap</span><span class="p">);</span>
+
+<span class="nv">$rucEmisor</span> <span class="o">=</span> <span class="s1">'20000000001'</span><span class="p">;</span>
+<span class="nv">$tipoDocumento</span> <span class="o">=</span> <span class="s1">'01'</span><span class="p">;</span> <span class="c1">// 01: Factura, 07: Nota de Crédito, 08: Nota de Débito</span>
+<span class="nv">$serie</span> <span class="o">=</span> <span class="s1">'F001'</span><span class="p">;</span>
+<span class="nv">$correlativo</span> <span class="o">=</span> <span class="s1">'1'</span><span class="p">;</span>
+<span class="nv">$result</span> <span class="o">=</span> <span class="nv">$service</span><span class="o">-&gt;</span><span class="na">getStatusCdr</span><span class="p">(</span><span class="nv">$rucEmisor</span><span class="p">,</span> <span class="nv">$tipoDocumento</span><span class="p">,</span> <span class="nv">$serie</span><span class="p">,</span> <span class="nv">$correlativo</span><span class="p">);</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nv">$result</span><span class="o">-&gt;</span><span class="na">isSuccess</span><span class="p">())</span> <span class="p">{</span>
+    <span class="nb">var_dump</span><span class="p">(</span><span class="nv">$result</span><span class="o">-&gt;</span><span class="na">getError</span><span class="p">());</span>
+    <span class="k">return</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="nv">$cdr</span> <span class="o">=</span> <span class="nv">$result</span><span class="o">-&gt;</span><span class="na">getCdrResponse</span><span class="p">();</span>
+<span class="k">if</span> <span class="p">(</span><span class="nv">$cdr</span> <span class="o">===</span> <span class="k">null</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">echo</span> <span class="s1">'CDR no encontrado, el comprobante no ha sido comunicado a SUNAT.'</span><span class="p">;</span>
+    <span class="k">return</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="nb">file_put_contents</span><span class="p">(</span><span class="s1">'R-20000000001-01-F001-1.zip'</span><span class="p">,</span> <span class="nv">$result</span><span class="o">-&gt;</span><span class="na">getCdrZip</span><span class="p">());</span>
+<span class="nb">var_dump</span><span class="p">(</span><span class="nv">$cdr</span><span class="p">);</span>
+</code></pre></div> <h2 id="servicios">Servicios<a class="headerlink" href="#servicios" title="Permanent link">¶</a></h2> <p>SUNAT dispone de servicios de prueba (<code>BETA</code>) y de producción para los diferentes tipos de comprobantes electrónicos.</p> <div class="tabbed-set" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio"><label for="__tabbed_1_1">BETA</label><div class="tabbed-content"> <div class="md-typeset__scrollwrap"><div class="md-typeset__table"><table> <thead> <tr> <th>Servicio</th> <th>Ruta</th> </tr> </thead> <tbody> <tr> <td>Factura</td> <td><a href="https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?wsdl">https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService?wsdl</a></td> </tr> <tr> <td>Guia</td> <td><a href="https://e-beta.sunat.gob.pe/ol-ti-itemision-guia-gem-beta/billService?wsdl">https://e-beta.sunat.gob.pe/ol-ti-itemision-guia-gem-beta/billService?wsdl</a></td> </tr> <tr> <td>Retención y Percepción</td> <td><a href="https://e-beta.sunat.gob.pe/ol-ti-itemision-otroscpe-gem-beta/billService?wsdl">https://e-beta.sunat.gob.pe/ol-ti-itemision-otroscpe-gem-beta/billService?wsdl</a></td> </tr> </tbody> </table></div></div> </div> <input id="__tabbed_1_2" name="__tabbed_1" type="radio"><label for="__tabbed_1_2">Producción</label><div class="tabbed-content"> <div class="md-typeset__scrollwrap"><div class="md-typeset__table"><table> <thead> <tr> <th>Servicio</th> <th>Ruta</th> </tr> </thead> <tbody> <tr> <td>Factura</td> <td><a href="https://e-factura.sunat.gob.pe/ol-ti-itcpfegem/billService?wsdl">https://e-factura.sunat.gob.pe/ol-ti-itcpfegem/billService?wsdl</a></td> </tr> <tr> <td>Guia</td> <td><a href="https://e-guiaremision.sunat.gob.pe/ol-ti-itemision-guia-gem/billService?wsdl">https://e-guiaremision.sunat.gob.pe/ol-ti-itemision-guia-gem/billService?wsdl</a></td> </tr> <tr> <td>Retención y Percepción</td> <td><a href="https://e-factura.sunat.gob.pe/ol-ti-itemision-otroscpe-gem/billService?wsdl">https://e-factura.sunat.gob.pe/ol-ti-itemision-otroscpe-gem/billService?wsdl</a></td> </tr> <tr> <td>Consulta CDR</td> <td><a href="https://e-factura.sunat.gob.pe/ol-it-wsconscpegem/billConsultService?wsdl">https://e-factura.sunat.gob.pe/ol-it-wsconscpegem/billConsultService?wsdl</a></td> </tr> </tbody> </table></div></div> </div> </div> </article> </div>

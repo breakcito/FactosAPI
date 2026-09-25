@@ -1,0 +1,38 @@
+<div class="md-content" data-md-component="content"> <article class="md-content__inner md-typeset"> <h1 id="grenter-xml-parser">Grenter XML Parser<a class="headerlink" href="#grenter-xml-parser" title="Permanent link">¶</a></h1> <p>Esta libreria permite crear objetos PHP a partir de documentos XML.</p> <div class="admonition warning"> <p class="admonition-title">UBL 2.1</p> <p>Actualmente solo esta implementada la versión <code>UBL 2.0</code>, aún esta pendiente la implementación de la versión <code>UBL 2.1</code>.</p> </div> <h2 id="instalar">Instalar<a class="headerlink" href="#instalar" title="Permanent link">¶</a></h2> <div class="highlight"><pre><span></span><code>composer<span class="w"> </span>require<span class="w"> </span>greenter/xml-parser
+</code></pre></div> <h2 id="documentos">Documentos<a class="headerlink" href="#documentos" title="Permanent link">¶</a></h2> <p>Los documentos disponibles en este paquete son:</p> <div class="md-typeset__scrollwrap"><div class="md-typeset__table"><table> <thead> <tr> <th>Documento UBL</th> <th>Parser</th> <th>Comprobante</th> </tr> </thead> <tbody> <tr> <td>Invoice</td> <td><code>InvoiceParser</code></td> <td>Factura, Boleta de venta</td> </tr> <tr> <td>CreditNote</td> <td><code>NoteParser</code></td> <td>Nota de Crédito</td> </tr> <tr> <td>DebitNote</td> <td><code>NoteParser</code></td> <td>Nota de Débito</td> </tr> <tr> <td>Summary</td> <td><code>SummaryParser</code></td> <td>Resumen diario</td> </tr> <tr> <td>Voided</td> <td><code>VoidedParser</code></td> <td>Comunicación de Baja, Reversion</td> </tr> <tr> <td>Despatch</td> <td><code>DespatchParser</code></td> <td>Guía de Remisión</td> </tr> <tr> <td>Retention</td> <td><code>RetentionParser</code></td> <td>Retención</td> </tr> <tr> <td>Perception</td> <td><code>PerceptionParser</code></td> <td>Percepción</td> </tr> </tbody> </table></div></div> <h2 id="uso">Uso<a class="headerlink" href="#uso" title="Permanent link">¶</a></h2> <p>Los archivo XML serán convertidos a modelos de documentos disponibles en <a href="https://reference.greenter.dev/Greenter/Model.html">greenter/core</a>, los cuales implementan <code>DocumentInterface</code>.</p> <div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+
+<span class="k">use</span> <span class="nx">Greenter\Xml\Parser\InvoiceParser</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Xml\Parser\PerceptionParser</span><span class="p">;</span>
+<span class="k">require</span> <span class="s1">'vendor/autoload.php'</span><span class="p">;</span>
+
+<span class="nv">$parser</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">InvoiceParser</span><span class="p">();</span>
+<span class="nv">$xml</span> <span class="o">=</span> <span class="nb">file_get_contents</span><span class="p">(</span><span class="s1">'20000000001-01-F001-1.xml'</span><span class="p">);</span>
+<span class="nv">$factura</span> <span class="o">=</span> <span class="nv">$parser</span><span class="o">-&gt;</span><span class="na">parse</span><span class="p">(</span><span class="nv">$xml</span><span class="p">);</span>
+
+<span class="nb">var_dump</span><span class="p">(</span><span class="nv">$factura</span><span class="p">);</span>
+
+<span class="nv">$parser</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">InvoiceParser</span><span class="p">();</span>
+<span class="nv">$xml</span> <span class="o">=</span> <span class="nb">file_get_contents</span><span class="p">(</span><span class="s1">'20000000001-03-B001-1.xml'</span><span class="p">);</span>
+<span class="nv">$boleta</span> <span class="o">=</span> <span class="nv">$parser</span><span class="o">-&gt;</span><span class="na">parse</span><span class="p">(</span><span class="nv">$xml</span><span class="p">);</span>
+
+<span class="nb">var_dump</span><span class="p">(</span><span class="nv">$boleta</span><span class="p">);</span>
+
+<span class="nv">$parser</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">PerceptionParser</span><span class="p">();</span>
+<span class="nv">$xml</span> <span class="o">=</span> <span class="nb">file_get_contents</span><span class="p">(</span><span class="s1">'20000000001-40-P001-1.xml'</span><span class="p">);</span>
+<span class="nv">$percepcion</span> <span class="o">=</span> <span class="nv">$parser</span><span class="o">-&gt;</span><span class="na">parse</span><span class="p">(</span><span class="nv">$xml</span><span class="p">);</span>
+
+<span class="nb">var_dump</span><span class="p">(</span><span class="nv">$percepcion</span><span class="p">);</span>
+</code></pre></div> <p>También puedes crear tu propia versión, implementando <code>DocumentParserInterface</code>.</p> <div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+
+<span class="k">namespace</span> <span class="nx">Greenter\Parser</span><span class="p">;</span>
+
+<span class="k">interface</span> <span class="nx">DocumentParserInterface</span>
+<span class="p">{</span>
+    <span class="sd">/**</span>
+<span class="sd">     * @param \DomDocument|string $value</span>
+<span class="sd">     *</span>
+<span class="sd">     * @return DocumentInterface</span>
+<span class="sd">     */</span>
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">parse</span><span class="p">(</span><span class="nv">$value</span><span class="p">)</span><span class="o">:</span> <span class="nx">DocumentInterface</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div> </article> </div>

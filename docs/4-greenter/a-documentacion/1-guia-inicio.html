@@ -1,0 +1,159 @@
+<div class="md-content" data-md-component="content"> <article class="md-content__inner md-typeset"> <h1 id="empezando-con-greenter">Empezando con Greenter<a class="headerlink" href="#empezando-con-greenter" title="Permanent link">¶</a></h1> <p>En este primero ejemplo, veremos el flujo básico del proceso de facturación electrónica, desde la elaboración del comprobante electrónico (archivo XML), la inclusión de la firma digital, y posterior envió a SUNAT, además de la lectura del CDR<sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup>.</p> <p><a href="https://gitpod.io/#https://github.com/thegreenter/firststeps"><img alt="Open in Gitpod" src="https://gitpod.io/button/open-in-gitpod.svg"></a></p> <h2 id="instalacion">Instalación<a class="headerlink" href="#instalacion" title="Permanent link">¶</a></h2> <p>La forma mas fácil de instalar grenter es utilizando <a href="https://getcomposer.org/">composer</a>. </p><div class="highlight"><pre><span></span><code>composer<span class="w"> </span>require<span class="w"> </span>greenter/lite
+</code></pre></div><p></p> <h2 id="requerimientos">Requerimientos<a class="headerlink" href="#requerimientos" title="Permanent link">¶</a></h2> <div class="tabbed-set" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio"><label for="__tabbed_1_1">Técnico</label><div class="tabbed-content"> <ul> <li>PHP <code>7.4</code> o superior</li> <li>Certificado en formato PEM</li> <li>Credenciales Clave SOL</li> </ul> <p>Se necesita tener las siguientes extensiones habilitadas en <code>php.ini</code>.</p> <div class="highlight"><pre><span></span><code><span class="na">extension</span><span class="o">=</span><span class="s">soap</span>
+<span class="na">extension</span><span class="o">=</span><span class="s">openssl</span>
+</code></pre></div> </div> <input id="__tabbed_1_2" name="__tabbed_1" type="radio"><label for="__tabbed_1_2">Bases</label><div class="tabbed-content"> <p>Para conocer más detalles sobre el proceso de Facturación Electrónica, puede consultar.</p> <ul> <li><a href="https://cpe.sunat.gob.pe/">FE Primer</a> - Guía de inicio hecho por Greenter</li> <li><a href="https://cpe.sunat.gob.pe/">cpe.sunat.gob.pe</a> - Página oficial de SUNAT</li> </ul> </div> </div> <h2 id="configuracion">Configuración<a class="headerlink" href="#configuracion" title="Permanent link">¶</a></h2> <p>Para firmar nuestro comprobante electrónico utilizaremos este <a href="https://raw.githubusercontent.com/thegreenter/xmldsig/master/tests/certificate.pem">certificado de prueba</a>, y para conectarnos a los servicios <code>BETA</code> de SUNAT, usaremos las credenciales <strong>Clave SOL</strong> por defecto.</p> <ul> <li>RUC: <code>20000000001</code></li> <li>Usuario: <code>MODDATOS</code></li> <li>Contraseña: <code>moddatos</code></li> </ul> <p>Crearemos el archivo <code>config.php</code> donde configuraremos el certificado digital, la ruta del servicio y las credenciales (Clave SOL) a utilizar: </p><div class="highlight"><span class="filename">config.php</span><pre><span></span><code><span class="cp">&lt;?php</span>
+<span class="k">use</span> <span class="nx">Greenter\Ws\Services\SunatEndpoints</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\See</span><span class="p">;</span>
+
+<span class="nv">$see</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">See</span><span class="p">();</span>
+<span class="nv">$see</span><span class="o">-&gt;</span><span class="na">setCertificate</span><span class="p">(</span><span class="nb">file_get_contents</span><span class="p">(</span><span class="no">__DIR__</span><span class="o">.</span><span class="s1">'/certificate.pem'</span><span class="p">));</span>
+<span class="nv">$see</span><span class="o">-&gt;</span><span class="na">setService</span><span class="p">(</span><span class="nx">SunatEndpoints</span><span class="o">::</span><span class="na">FE_BETA</span><span class="p">);</span>
+<span class="nv">$see</span><span class="o">-&gt;</span><span class="na">setClaveSOL</span><span class="p">(</span><span class="s1">'20000000001'</span><span class="p">,</span> <span class="s1">'MODDATOS'</span><span class="p">,</span> <span class="s1">'moddatos'</span><span class="p">);</span>
+
+<span class="k">return</span> <span class="nv">$see</span><span class="p">;</span>
+</code></pre></div><p></p> <details class="info"> <summary>Certificado .PFX - PKCS#12</summary> <p>Si cuentas con un certificado <code>.p12</code> ó <code>.pfx</code>, puedes configurar el certificado con el siguiente código:</p> <div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+<span class="k">use</span> <span class="nx">Greenter\XMLSecLibs\Certificate\X509Certificate</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\XMLSecLibs\Certificate\X509ContentType</span><span class="p">;</span>
+
+<span class="c1">// ...</span>
+
+<span class="nv">$pfx</span> <span class="o">=</span> <span class="nb">file_get_contents</span><span class="p">(</span><span class="s1">'mycert.pfx'</span><span class="p">);</span>
+<span class="nv">$password</span> <span class="o">=</span> <span class="s1">'YOUR-PASSWORD'</span><span class="p">;</span>
+
+<span class="nv">$certificate</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">X509Certificate</span><span class="p">(</span><span class="nv">$pfx</span><span class="p">,</span> <span class="nv">$password</span><span class="p">);</span>
+
+<span class="nv">$see</span><span class="o">-&gt;</span><span class="na">setCertificate</span><span class="p">(</span><span class="nv">$certificate</span><span class="o">-&gt;</span><span class="na">export</span><span class="p">(</span><span class="nx">X509ContentType</span><span class="o">::</span><span class="na">PEM</span><span class="p">));</span>
+
+<span class="c1">// ...</span>
+</code></pre></div> </details> <h2 id="definicion-del-comprobante">Definición del comprobante<a class="headerlink" href="#definicion-del-comprobante" title="Permanent link">¶</a></h2> <p>Para el ejemplo, el comprobante a utilizar será una factura gravada, con la siguiente definición.</p> <div class="highlight"><pre><span></span><code>La empresa GREEN SAC, identificada con RUC 20123456789; desea emitir 
+su primera factura electrónica N° F001-1 con la siguiente información:
+</code></pre></div> <div class="md-typeset__scrollwrap"><div class="md-typeset__table"><table> <thead> <tr> <th>Global</th> <th style="text-align: right;"></th> </tr> </thead> <tbody> <tr> <td>Numero</td> <td style="text-align: right;">F001-1</td> </tr> <tr> <td>Fecha de Emisión</td> <td style="text-align: right;">21/07/2020</td> </tr> <tr> <td>Hora de Emisión</td> <td style="text-align: right;">13:05</td> </tr> <tr> <td>Forma de Pago</td> <td style="text-align: right;">Contado</td> </tr> <tr> <td>Moneda</td> <td style="text-align: right;">Sol (PEN)</td> </tr> <tr> <td>RUC de Emisor</td> <td style="text-align: right;">20123456789</td> </tr> <tr> <td>RUC de Receptor</td> <td style="text-align: right;">20000000001</td> </tr> <tr> <td>Operaciones Gravadas</td> <td style="text-align: right;">S/ 100.00</td> </tr> <tr> <td>Valor Venta</td> <td style="text-align: right;">S/ 100.00</td> </tr> <tr> <td>IGV</td> <td style="text-align: right;">S/ 18.00</td> </tr> <tr> <td>Total Impuestos</td> <td style="text-align: right;">S/ 18.00</td> </tr> <tr> <td>Importe Total</td> <td style="text-align: right;">S/ 118.00</td> </tr> </tbody> </table></div></div> <div class="md-typeset__scrollwrap"><div class="md-typeset__table"><table> <thead> <tr> <th>Detalle</th> <th style="text-align: right;"></th> </tr> </thead> <tbody> <tr> <td>Codigo</td> <td style="text-align: right;">P001</td> </tr> <tr> <td>Descripcíon</td> <td style="text-align: right;">Tijeras</td> </tr> <tr> <td>Unidad de Medida</td> <td style="text-align: right;">Unidad (NIU)</td> </tr> <tr> <td>Cantidad</td> <td style="text-align: right;">2</td> </tr> <tr> <td>Valor unitario</td> <td style="text-align: right;">S/ 50.00</td> </tr> <tr> <td>Valor venta</td> <td style="text-align: right;">S/ 100.00</td> </tr> <tr> <td>Tipo de afectación IGV</td> <td style="text-align: right;">Gravado (10)</td> </tr> <tr> <td>IGV</td> <td style="text-align: right;">S/ 18.00</td> </tr> <tr> <td>Total Impuestos</td> <td style="text-align: right;">S/ 18.00</td> </tr> <tr> <td>Precio unitario</td> <td style="text-align: right;">S/ 59.00</td> </tr> </tbody> </table></div></div> <h2 id="factura-electronica">Factura Electrónica<a class="headerlink" href="#factura-electronica" title="Permanent link">¶</a></h2> <p>Crearemos nuestra primera factura electrónica siguiendo el estándar <a href="https://github.com/thegreenter/ubl-validator/blob/0962ca6a30de609851d83965b8401a7983bc56b7/src/xsd/2.1/maindoc/UBL-Invoice-2.1.xsd">UBL 2.1</a>, en nuevo archivo <code>factura.php</code> agregaremos el siguiente código: </p><div class="highlight"><span class="filename">factura.php</span><pre><span></span><code><span class="cp">&lt;?php</span>
+
+<span class="k">use</span> <span class="nx">Greenter\Model\Client\Client</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Model\Company\Company</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Model\Company\Address</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Model\Sale\FormaPagos\FormaPagoContado</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Model\Sale\Invoice</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Model\Sale\SaleDetail</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Model\Sale\Legend</span><span class="p">;</span>
+
+<span class="k">require</span> <span class="no">__DIR__</span><span class="o">.</span><span class="s1">'/vendor/autoload.php'</span><span class="p">;</span>
+
+<span class="nv">$see</span> <span class="o">=</span> <span class="k">require</span> <span class="no">__DIR__</span><span class="o">.</span><span class="s1">'/config.php'</span><span class="p">;</span>
+
+<span class="c1">// Cliente</span>
+<span class="nv">$client</span> <span class="o">=</span> <span class="p">(</span><span class="k">new</span> <span class="nx">Client</span><span class="p">())</span>
+    <span class="o">-&gt;</span><span class="na">setTipoDoc</span><span class="p">(</span><span class="s1">'6'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setNumDoc</span><span class="p">(</span><span class="s1">'20000000001'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setRznSocial</span><span class="p">(</span><span class="s1">'EMPRESA X'</span><span class="p">);</span>
+
+<span class="c1">// Emisor</span>
+<span class="nv">$address</span> <span class="o">=</span> <span class="p">(</span><span class="k">new</span> <span class="nx">Address</span><span class="p">())</span>
+    <span class="o">-&gt;</span><span class="na">setUbigueo</span><span class="p">(</span><span class="s1">'150101'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setDepartamento</span><span class="p">(</span><span class="s1">'LIMA'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setProvincia</span><span class="p">(</span><span class="s1">'LIMA'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setDistrito</span><span class="p">(</span><span class="s1">'LIMA'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setUrbanizacion</span><span class="p">(</span><span class="s1">'-'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setDireccion</span><span class="p">(</span><span class="s1">'Av. Villa Nueva 221'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setCodLocal</span><span class="p">(</span><span class="s1">'0000'</span><span class="p">);</span> <span class="c1">// Codigo de establecimiento asignado por SUNAT, 0000 por defecto.</span>
+
+<span class="nv">$company</span> <span class="o">=</span> <span class="p">(</span><span class="k">new</span> <span class="nx">Company</span><span class="p">())</span>
+    <span class="o">-&gt;</span><span class="na">setRuc</span><span class="p">(</span><span class="s1">'20123456789'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setRazonSocial</span><span class="p">(</span><span class="s1">'GREEN SAC'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setNombreComercial</span><span class="p">(</span><span class="s1">'GREEN'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setAddress</span><span class="p">(</span><span class="nv">$address</span><span class="p">);</span>
+
+<span class="c1">// Venta</span>
+<span class="nv">$invoice</span> <span class="o">=</span> <span class="p">(</span><span class="k">new</span> <span class="nx">Invoice</span><span class="p">())</span>
+    <span class="o">-&gt;</span><span class="na">setUblVersion</span><span class="p">(</span><span class="s1">'2.1'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setTipoOperacion</span><span class="p">(</span><span class="s1">'0101'</span><span class="p">)</span> <span class="c1">// Venta - Catalog. 51</span>
+    <span class="o">-&gt;</span><span class="na">setTipoDoc</span><span class="p">(</span><span class="s1">'01'</span><span class="p">)</span> <span class="c1">// Factura - Catalog. 01 </span>
+    <span class="o">-&gt;</span><span class="na">setSerie</span><span class="p">(</span><span class="s1">'F001'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setCorrelativo</span><span class="p">(</span><span class="s1">'1'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setFechaEmision</span><span class="p">(</span><span class="k">new</span> <span class="nx">DateTime</span><span class="p">(</span><span class="s1">'2020-08-24 13:05:00-05:00'</span><span class="p">))</span> <span class="c1">// Zona horaria: Lima</span>
+    <span class="o">-&gt;</span><span class="na">setFormaPago</span><span class="p">(</span><span class="k">new</span> <span class="nx">FormaPagoContado</span><span class="p">())</span> <span class="c1">// FormaPago: Contado</span>
+    <span class="o">-&gt;</span><span class="na">setTipoMoneda</span><span class="p">(</span><span class="s1">'PEN'</span><span class="p">)</span> <span class="c1">// Sol - Catalog. 02</span>
+    <span class="o">-&gt;</span><span class="na">setCompany</span><span class="p">(</span><span class="nv">$company</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setClient</span><span class="p">(</span><span class="nv">$client</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setMtoOperGravadas</span><span class="p">(</span><span class="mf">100.00</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setMtoIGV</span><span class="p">(</span><span class="mf">18.00</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setTotalImpuestos</span><span class="p">(</span><span class="mf">18.00</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setValorVenta</span><span class="p">(</span><span class="mf">100.00</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setSubTotal</span><span class="p">(</span><span class="mf">118.00</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setMtoImpVenta</span><span class="p">(</span><span class="mf">118.00</span><span class="p">)</span>
+    <span class="p">;</span>
+
+<span class="nv">$item</span> <span class="o">=</span> <span class="p">(</span><span class="k">new</span> <span class="nx">SaleDetail</span><span class="p">())</span>
+    <span class="o">-&gt;</span><span class="na">setCodProducto</span><span class="p">(</span><span class="s1">'P001'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setUnidad</span><span class="p">(</span><span class="s1">'NIU'</span><span class="p">)</span> <span class="c1">// Unidad - Catalog. 03</span>
+    <span class="o">-&gt;</span><span class="na">setCantidad</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setMtoValorUnitario</span><span class="p">(</span><span class="mf">50.00</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setDescripcion</span><span class="p">(</span><span class="s1">'PRODUCTO 1'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setMtoBaseIgv</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setPorcentajeIgv</span><span class="p">(</span><span class="mf">18.00</span><span class="p">)</span> <span class="c1">// 18%</span>
+    <span class="o">-&gt;</span><span class="na">setIgv</span><span class="p">(</span><span class="mf">18.00</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setTipAfeIgv</span><span class="p">(</span><span class="s1">'10'</span><span class="p">)</span> <span class="c1">// Gravado Op. Onerosa - Catalog. 07</span>
+    <span class="o">-&gt;</span><span class="na">setTotalImpuestos</span><span class="p">(</span><span class="mf">18.00</span><span class="p">)</span> <span class="c1">// Suma de impuestos en el detalle</span>
+    <span class="o">-&gt;</span><span class="na">setMtoValorVenta</span><span class="p">(</span><span class="mf">100.00</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setMtoPrecioUnitario</span><span class="p">(</span><span class="mf">59.00</span><span class="p">)</span>
+    <span class="p">;</span>
+
+<span class="nv">$legend</span> <span class="o">=</span> <span class="p">(</span><span class="k">new</span> <span class="nx">Legend</span><span class="p">())</span>
+    <span class="o">-&gt;</span><span class="na">setCode</span><span class="p">(</span><span class="s1">'1000'</span><span class="p">)</span> <span class="c1">// Monto en letras - Catalog. 52</span>
+    <span class="o">-&gt;</span><span class="na">setValue</span><span class="p">(</span><span class="s1">'SON DOSCIENTOS TREINTA Y SEIS CON 00/100 SOLES'</span><span class="p">);</span>
+
+<span class="nv">$invoice</span><span class="o">-&gt;</span><span class="na">setDetails</span><span class="p">([</span><span class="nv">$item</span><span class="p">])</span>
+        <span class="o">-&gt;</span><span class="na">setLegends</span><span class="p">([</span><span class="nv">$legend</span><span class="p">]);</span>
+</code></pre></div><p></p> <p>Los catálogos que se mencionan en los comentarios del código se encuentran en la <em>Reglas de Validaciones de SUNAT</em>, puedes obtener la última versión en la <a href="https://cpe.sunat.gob.pe/node/88#item-1">página oficial de SUNAT</a>.</p> <h2 id="envio-a-sunat">Envío a SUNAT<a class="headerlink" href="#envio-a-sunat" title="Permanent link">¶</a></h2> <p>En el mismo archivo <code>factura.php</code> agregaremos el código de abajo, el método <code>send</code> envuelve varios procesos en si, primero genera el XML, lo firma digitalmente, lo envía al servició de SUNAT y procesa la respuesta (CDR).</p> <p></p><div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+
+<span class="nv">$result</span> <span class="o">=</span> <span class="nv">$see</span><span class="o">-&gt;</span><span class="na">send</span><span class="p">(</span><span class="nv">$invoice</span><span class="p">);</span>
+
+<span class="c1">// Guardar XML firmado digitalmente.</span>
+<span class="nb">file_put_contents</span><span class="p">(</span><span class="nv">$invoice</span><span class="o">-&gt;</span><span class="na">getName</span><span class="p">()</span><span class="o">.</span><span class="s1">'.xml'</span><span class="p">,</span>
+                  <span class="nv">$see</span><span class="o">-&gt;</span><span class="na">getFactory</span><span class="p">()</span><span class="o">-&gt;</span><span class="na">getLastXml</span><span class="p">());</span>
+
+<span class="c1">// Verificamos que la conexión con SUNAT fue exitosa.</span>
+<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nv">$result</span><span class="o">-&gt;</span><span class="na">isSuccess</span><span class="p">())</span> <span class="p">{</span>
+    <span class="c1">// Mostrar error al conectarse a SUNAT.</span>
+    <span class="k">echo</span> <span class="s1">'Codigo Error: '</span><span class="o">.</span><span class="nv">$result</span><span class="o">-&gt;</span><span class="na">getError</span><span class="p">()</span><span class="o">-&gt;</span><span class="na">getCode</span><span class="p">();</span>
+    <span class="k">echo</span> <span class="s1">'Mensaje Error: '</span><span class="o">.</span><span class="nv">$result</span><span class="o">-&gt;</span><span class="na">getError</span><span class="p">()</span><span class="o">-&gt;</span><span class="na">getMessage</span><span class="p">();</span>
+    <span class="k">exit</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="c1">// Guardamos el CDR</span>
+<span class="nb">file_put_contents</span><span class="p">(</span><span class="s1">'R-'</span><span class="o">.</span><span class="nv">$invoice</span><span class="o">-&gt;</span><span class="na">getName</span><span class="p">()</span><span class="o">.</span><span class="s1">'.zip'</span><span class="p">,</span> <span class="nv">$result</span><span class="o">-&gt;</span><span class="na">getCdrZip</span><span class="p">());</span>
+</code></pre></div> Para saber como actuar según el código de error que SUNAT devuelve, es muy importante revisar las <a href="https://cpe.sunat.gob.pe/node/88#item-1">Reglas de Validación</a>, allí encontraremos todas las validaciones que SUNAT aplica a los diferentes comprobantes electrónicos disponibles, además de lista de catálogos y la lista completa de codigos de error.<p></p> <h2 id="lectura-del-cdr">Lectura del CDR<a class="headerlink" href="#lectura-del-cdr" title="Permanent link">¶</a></h2> <p>Finalmente para saber si nuestro comprobante fue procesado correctamente y ha sido aceptado por SUNAT, necesitamos leer la informacíon contenida en el CDR<sup id="fnref2:1"><a class="footnote-ref" href="#fn:1">1</a></sup>.</p> <div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+<span class="cm">/*</span>
+<span class="cm">* file: factura.php </span>
+<span class="cm">*/</span>
+
+<span class="nv">$cdr</span> <span class="o">=</span> <span class="nv">$result</span><span class="o">-&gt;</span><span class="na">getCdrResponse</span><span class="p">();</span>
+
+<span class="nv">$code</span> <span class="o">=</span> <span class="p">(</span><span class="nx">int</span><span class="p">)</span><span class="nv">$cdr</span><span class="o">-&gt;</span><span class="na">getCode</span><span class="p">();</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="nv">$code</span> <span class="o">===</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">echo</span> <span class="s1">'ESTADO: ACEPTADA'</span><span class="o">.</span><span class="nx">PHP_EOL</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">count</span><span class="p">(</span><span class="nv">$cdr</span><span class="o">-&gt;</span><span class="na">getNotes</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">echo</span> <span class="s1">'OBSERVACIONES:'</span><span class="o">.</span><span class="nx">PHP_EOL</span><span class="p">;</span>
+        <span class="c1">// Corregir estas observaciones en siguientes emisiones.</span>
+        <span class="nb">var_dump</span><span class="p">(</span><span class="nv">$cdr</span><span class="o">-&gt;</span><span class="na">getNotes</span><span class="p">());</span>
+    <span class="p">}</span>  
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nv">$code</span> <span class="o">&gt;=</span> <span class="mi">2000</span> <span class="o">&amp;&amp;</span> <span class="nv">$code</span> <span class="o">&lt;=</span> <span class="mi">3999</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">echo</span> <span class="s1">'ESTADO: RECHAZADA'</span><span class="o">.</span><span class="nx">PHP_EOL</span><span class="p">;</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="cm">/* Esto no debería darse, pero si ocurre, es un CDR inválido que debería tratarse como un error-excepción. */</span>
+    <span class="cm">/*code: 0100 a 1999 */</span>
+    <span class="k">echo</span> <span class="s1">'Excepción'</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">echo</span> <span class="nv">$cdr</span><span class="o">-&gt;</span><span class="na">getDescription</span><span class="p">()</span><span class="o">.</span><span class="nx">PHP_EOL</span><span class="p">;</span>
+</code></pre></div> <blockquote> <p>Más detalles sobre que hacer si una factura fue observada o rechazada, <a href="https://greenter.dev/faq/#facturas">aquí</a>. </p> </blockquote> <h2 id="ejecutar">Ejecutar<a class="headerlink" href="#ejecutar" title="Permanent link">¶</a></h2> <p>Finalmente ejecutaremos el script desde la linea de comandos. </p><div class="highlight"><pre><span></span><code>php<span class="w"> </span>factura.php
+</code></pre></div> y si todo sale bien obtendremos como respuesta. <p></p> <div class="admonition success"> <p class="admonition-title">Exito!</p> <p>ESTADO: ACEPTADA <br> La Factura numero F001-1, ha sido aceptada</p> </div> <p>Estructura finald del proyecto de ejemplo:</p> <div class="highlight"><pre><span></span><code>/
+├── vendor/
+├── certificate.pem
+├── composer.json
+├── config.php
+├── factura.php
+├── 20123456789-01-F001-1.xml
+├── R-20123456789-01-F001-1.zip
+</code></pre></div> <p>Este ejemplo puedes encontrarlo en <a href="https://github.com/thegreenter/firststeps">@thegreenter/firststeps</a>.</p> <h2 id="que-sigue">¿Que sigue?<a class="headerlink" href="#que-sigue" title="Permanent link">¶</a></h2> <ul> <li><a href="https://greenter.dev/usage/">Detalles de uso de greenter</a></li> <li><a href="https://github.com/thegreenter/demo/tree/master/examples">Ejemplos de comprobantes electrónicos</a></li> <li><a href="https://greenter.dev/packages/xml/">Revisar los paquetes que componen greenter</a></li> </ul> <h2 id="comentarios">Comentarios<a class="headerlink" href="#comentarios" title="Permanent link">¶</a></h2> <p>Pueden unirse a 👋 <a href="https://community.greenter.dev/">Greenter Community</a>.</p> <div class="footnote"> <hr> <ol> <li id="fn:1"> <p>Comprobante de Recepción (CDR), es un archivo xml que contiene la respuesta de SUNAT, al envío previo de un comprobante electrónico, en ella se indica si un comprobante ha sido aceptado, aceptado con observaciones o rechazado.&nbsp;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">↩</a><a class="footnote-backref" href="#fnref2:1" title="Jump back to footnote 1 in the text">↩</a></p> </li> </ol> </div> </article> </div>

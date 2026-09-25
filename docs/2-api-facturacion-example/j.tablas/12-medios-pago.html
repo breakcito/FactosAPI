@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Document</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body>
+        <div class="max-w-2xl">
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">
+                    Medios de pago
+                </h1>
+                <p class="text-gray-500 text-sm leading-relaxed mb-3">
+                    Catálogo 59 SUNAT. Medio de pago utilizado en la operación.
+                    Se envía en el campo medioPago de la detracción.
+                </p>
+                <code
+                    class="text-xs px-2 py-1 rounded-md font-mono"
+                    style="
+                        background-color: rgb(234, 245, 252);
+                        color: rgb(30, 111, 159);
+                    "
+                    >detraccion.medioPago</code
+                >
+            </div>
+            <div class="border border-gray-200 rounded-xl overflow-hidden">
+                <div
+                    class="grid grid-cols-[120px_1fr] text-xs font-semibold uppercase tracking-wider text-gray-400 px-4 py-2 border-b border-gray-200 bg-gray-50"
+                >
+                    <span>Código</span><span>Nombre</span>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >001</code
+                    >
+                    <div>
+                        <span class="text-gray-700">Depósito en cuenta</span>
+                    </div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >002</code
+                    >
+                    <div><span class="text-gray-700">Giro</span></div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >003</code
+                    >
+                    <div>
+                        <span class="text-gray-700"
+                            >Transferencia de fondos</span
+                        >
+                    </div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >004</code
+                    >
+                    <div><span class="text-gray-700">Orden de pago</span></div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >005</code
+                    >
+                    <div>
+                        <span class="text-gray-700">Tarjeta de débito</span>
+                    </div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >006</code
+                    >
+                    <div>
+                        <span class="text-gray-700"
+                            >Tarjeta de crédito emitida en el país por empresa
+                            del sistema financiero</span
+                        >
+                    </div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >007</code
+                    >
+                    <div>
+                        <span class="text-gray-700"
+                            >Cheque con cláusula NO NEGOCIABLE /
+                            INTRANSFERIBLE</span
+                        >
+                    </div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >008</code
+                    >
+                    <div>
+                        <span class="text-gray-700"
+                            >Efectivo — sin obligación de usar medio de
+                            pago</span
+                        >
+                    </div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >009</code
+                    >
+                    <div>
+                        <span class="text-gray-700"
+                            >Efectivo — demás casos</span
+                        >
+                    </div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >010</code
+                    >
+                    <div>
+                        <span class="text-gray-700"
+                            >Medios de pago usados en comercio exterior</span
+                        >
+                    </div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >011</code
+                    >
+                    <div>
+                        <span class="text-gray-700"
+                            >Documentos emitidos por EDPYMES y cooperativas de
+                            ahorro</span
+                        >
+                    </div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >012</code
+                    >
+                    <div>
+                        <span class="text-gray-700"
+                            >Tarjeta de crédito emitida por empresa no
+                            perteneciente al sistema financiero</span
+                        >
+                    </div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >013</code
+                    >
+                    <div>
+                        <span class="text-gray-700"
+                            >Tarjetas de crédito emitidas en el exterior por
+                            empresas bancarias no domiciliadas</span
+                        >
+                    </div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >101</code
+                    >
+                    <div>
+                        <span class="text-gray-700"
+                            >Transferencias — Comercio exterior</span
+                        >
+                    </div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >102</code
+                    >
+                    <div>
+                        <span class="text-gray-700"
+                            >Cheques bancarios — Comercio exterior</span
+                        >
+                    </div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >103</code
+                    >
+                    <div>
+                        <span class="text-gray-700"
+                            >Orden de pago simple — Comercio exterior</span
+                        >
+                    </div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >104</code
+                    >
+                    <div>
+                        <span class="text-gray-700"
+                            >Orden de pago documentario — Comercio
+                            exterior</span
+                        >
+                    </div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >105</code
+                    >
+                    <div>
+                        <span class="text-gray-700"
+                            >Remesa simple — Comercio exterior</span
+                        >
+                    </div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >106</code
+                    >
+                    <div>
+                        <span class="text-gray-700"
+                            >Remesa documentaria — Comercio exterior</span
+                        >
+                    </div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >107</code
+                    >
+                    <div>
+                        <span class="text-gray-700"
+                            >Carta de crédito simple — Comercio exterior</span
+                        >
+                    </div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start border-b border-gray-100"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >108</code
+                    >
+                    <div>
+                        <span class="text-gray-700"
+                            >Carta de crédito documentario — Comercio
+                            exterior</span
+                        >
+                    </div>
+                </div>
+                <div
+                    class="grid grid-cols-[120px_1fr] px-4 py-3 text-sm items-start"
+                >
+                    <code
+                        class="font-mono font-semibold text-xs w-fit"
+                        style="color: rgb(59, 165, 224)"
+                        >999</code
+                    >
+                    <div>
+                        <span class="text-gray-700">Otros medios de pago</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

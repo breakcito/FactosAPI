@@ -1,0 +1,38 @@
+<div class="md-content" data-md-component="content"> <article class="md-content__inner md-typeset"> <h1 id="grenter-xml">Grenter XML<a class="headerlink" href="#grenter-xml" title="Permanent link">¶</a></h1> <p>Esta libreria permite generar documentos XML siguiendo el estándar UBL 2.0 y 2.1, ademas de considerar las normas establecidas por SUNAT.</p> <div class="admonition warning"> <p class="admonition-title">UBL 2.0</p> <p>No usar la versión 2.0 para generar Facturas, Boletas, Notas de Crédito, Notas de Débito, ya que SUNAT actualmente exige utilizar la versión <code>UBL 2.1</code>.</p> </div> <h2 id="instalar">Instalar<a class="headerlink" href="#instalar" title="Permanent link">¶</a></h2> <div class="highlight"><pre><span></span><code>composer<span class="w"> </span>require<span class="w"> </span>greenter/xml
+</code></pre></div> <h2 id="documentos">Documentos<a class="headerlink" href="#documentos" title="Permanent link">¶</a></h2> <p>Los documentos disponibles en este paquete son:</p> <div class="md-typeset__scrollwrap"><div class="md-typeset__table"><table> <thead> <tr> <th>Documento UBL</th> <th>Builder</th> <th>Comprobante</th> </tr> </thead> <tbody> <tr> <td>Invoice</td> <td><code>InvoiceBuilder</code></td> <td>Factura, Boleta de Venta</td> </tr> <tr> <td>CreditNote</td> <td><code>NoteBuilder</code></td> <td>Nota de Crédito</td> </tr> <tr> <td>DebitNote</td> <td><code>NoteBuilder</code></td> <td>Nota de Débito</td> </tr> <tr> <td>Summary</td> <td><code>SummaryBuilder</code></td> <td>Resumen diario</td> </tr> <tr> <td>Voided</td> <td><code>VoidedBuilder</code></td> <td>Comunicación de Baja, Reversion</td> </tr> <tr> <td>Despatch</td> <td><code>DespatchBuilder</code></td> <td>Guía de Remisión</td> </tr> <tr> <td>Retention</td> <td><code>RetentionBuilder</code></td> <td>Retención</td> </tr> <tr> <td>Perception</td> <td><code>PerceptionBuilder</code></td> <td>Percepción</td> </tr> </tbody> </table></div></div> <h2 id="uso">Uso<a class="headerlink" href="#uso" title="Permanent link">¶</a></h2> <p>Para generar el archivo XML nos basamos en modelos de documentos disponibles en <a href="https://reference.greenter.dev/Greenter/Model.html">greenter/core</a>, los cuales implementan <code>DocumentInterface</code>.</p> <p>Para una factura el modelo a utilizar es <code>Invoice</code>, y para generar el XML debemos usar <code>InvoiceBuilder</code>.</p> <div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+
+<span class="k">use</span> <span class="nx">Greenter\Model\Sale\Invoice</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Xml\Builder\InvoiceBuilder</span><span class="p">;</span>
+
+<span class="nv">$invoice</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Invoice</span><span class="p">();</span>
+<span class="nv">$invoice</span><span class="o">-&gt;</span><span class="na">setSerie</span><span class="p">(</span><span class="s1">'F001'</span><span class="p">);</span>
+<span class="nv">$invoice</span><span class="o">-&gt;</span><span class="na">setCorrelativo</span><span class="p">(</span><span class="s1">'1'</span><span class="p">);</span>
+<span class="c1">// ...</span>
+
+<span class="nv">$builder</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">InvoiceBuilder</span><span class="p">();</span>
+<span class="nv">$xml</span> <span class="o">=</span> <span class="nv">$builder</span><span class="o">-&gt;</span><span class="na">build</span><span class="p">(</span><span class="nv">$invoice</span><span class="p">);</span>
+
+<span class="k">echo</span> <span class="nv">$xml</span><span class="p">;</span>
+</code></pre></div> <p>Tener en cuenta que esto solo crea el XML pero no realiza la firma, para ello utilizar <code>greenter/xmldsig</code>. <br> El siguiente fragmento es una previsualización del resultado:</p> <div class="highlight"><pre><span></span><code tabindex="0"><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+<span class="nt">&lt;Invoice</span><span class="w"> </span><span class="na">xmlns=</span><span class="s">"urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"</span><span class="w"> </span><span class="na">xmlns:cac=</span><span class="s">"urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"</span><span class="w"> </span><span class="na">xmlns:cbc=</span><span class="s">"urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"</span><span class="w"> </span><span class="na">xmlns:ds=</span><span class="s">"http://www.w3.org/2000/09/xmldsig#"</span><span class="w"> </span><span class="na">xmlns:ext=</span><span class="s">"urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2"</span><span class="nt">&gt;</span>
+<span class="w">   </span><span class="nt">&lt;ext:UBLExtensions&gt;</span>
+<span class="w">    </span><span class="nt">&lt;ext:UBLExtension&gt;</span>
+<span class="w">      </span><span class="nt">&lt;ext:ExtensionContent&gt;</span>
+<span class="w">      </span><span class="nt">&lt;/ext:ExtensionContent&gt;</span>
+<span class="w">    </span><span class="nt">&lt;/ext:UBLExtension&gt;</span>
+<span class="w">   </span><span class="nt">&lt;/ext:UBLExtensions&gt;</span>
+<span class="w">   </span><span class="nt">&lt;cbc:UBLVersionID&gt;</span>2.1<span class="nt">&lt;/cbc:UBLVersionID&gt;</span>
+<span class="w">   </span><span class="nt">&lt;cbc:CustomizationID&gt;</span>2.0<span class="nt">&lt;/cbc:CustomizationID&gt;</span>
+<span class="w">   </span><span class="nt">&lt;cbc:ID&gt;</span>F001-1<span class="nt">&lt;/cbc:ID&gt;</span>
+<span class="cm">&lt;!--....--&gt;</span>
+<span class="nt">&lt;/Invoice&gt;</span>
+</code></pre></div> <h2 id="avanzado">Avanzado<a class="headerlink" href="#avanzado" title="Permanent link">¶</a></h2> <p>Esta libreria para generar los XML emplea el motor de plantillas <a href="https://twig.symfony.com/">twig</a>, si necesitas cambiar algunos <a href="https://twig.symfony.com/doc/3.x/api.html#environment-options">parametros</a> puedes hacerlo desde el constructor.</p> <p><strong>Ejemplo</strong></p> <div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+
+<span class="k">use</span> <span class="nx">Greenter\Xml\Builder\InvoiceBuilder</span><span class="p">;</span>
+
+<span class="nv">$options</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">'cache'</span> <span class="o">=&gt;</span> <span class="s1">'/tmp/compilation_cache'</span>
+<span class="p">];</span>
+
+<span class="nv">$builder</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">InvoiceBuilder</span><span class="p">(</span><span class="nv">$options</span><span class="p">);</span>
+</code></pre></div> <p>También puedes crear tu propia versión, implementando <a href="https://reference.greenter.dev/Greenter/Builder/BuilderInterface.html"><code>BuilderInterface</code></a>.</p> </article> </div>

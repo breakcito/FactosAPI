@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-10"><div><div class="mb-8"><h1 class="text-2xl font-bold text-gray-900 mb-2">Factura con retención</h1><p class="text-gray-500 text-sm mb-4 leading-relaxed">Factura sujeta a retención (sunatTransaccion: 2001). Incluye el objeto retencion con tipo y porcentaje.</p><div class="flex items-start gap-3 px-4 py-3 rounded-xl font-mono border" style="background-color: rgb(234, 245, 252); border-color: rgb(184, 221, 244);"><span class="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-mono font-semibold bg-orange-50 text-orange-600 ring-1 ring-orange-200 ">POST</span><span class="text-sm break-all" style="color: rgb(30, 111, 159);">https://api.facturalo.pe/api/v3/documentos/enviar</span></div></div><div class="mb-8"><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Parámetros del body</h3><div class="border border-gray-200 rounded-xl overflow-hidden"><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 " style="padding-left: 16px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">webhook</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">boolean</span><span class="text-xs text-gray-300">opcional</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Si es true, la respuesta es inmediata (EN_PROCESO) y el resultado llega al webhook configurado. Default: false (síncrono).</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">false</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 " style="padding-left: 16px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">establecimiento</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string | null</span><span class="text-xs text-gray-300">opcional</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>UUID del establecimiento emisor. Si se omite, se usa el establecimiento principal de la empresa.</span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 " style="padding-left: 16px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">documento</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">object</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Datos del comprobante electrónico.</span><button class="mt-1.5 flex items-center gap-1 text-xs text-gray-500 border border-gray-200 rounded-full px-2.5 py-0.5 hover:bg-white hover:border-gray-300 transition-colors"><span class="text-gray-400 text-[10px]">−</span>Ocultar atributos hijos</button></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 32px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">sunatTransaccion</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>2001 = Operación sujeta a retención. Obligatorio para este tipo.</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">2001</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 32px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">tipoComprobante</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>01 = Factura electrónica.</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">01</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 32px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">serie</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Serie del comprobante. Facturas: F001–F999. Boletas: B001–B999. Exactamente 4 caracteres.</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">F001</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 32px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">correlativo</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Correlativo numérico. Máximo 8 caracteres.</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">1</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 32px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">fechaEmision</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Fecha de emisión en formato YYYY-MM-DD.</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">2026-06-13</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 32px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">fechaVencimiento</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string | null</span><span class="text-xs text-gray-300">opcional</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Fecha de vencimiento. Formato YYYY-MM-DD. Si no se envía, se toma la fechaEmision como fecha de vencimiento.</span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 32px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">formaPago</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>"CONTADO" | "CREDITO". Si es CREDITO, se requiere el array cuotas.</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">CONTADO</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 32px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">moneda</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>"PEN" (Soles) | "USD" (Dólares).</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">PEN</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 32px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">observaciones</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string | null</span><span class="text-xs text-gray-300">opcional</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Texto libre que aparece en el comprobante.</span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 32px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">placaVehiculo</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string | null</span><span class="text-xs text-gray-300">opcional</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Placa del vehículo asociado a la operación.</span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 32px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">ordenCompra</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string | null</span><span class="text-xs text-gray-300">opcional</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Número de orden de compra del cliente.</span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 32px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">otrosCampos</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">array | null</span><span class="text-xs text-gray-300">opcional</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Campos libres solo locales (PDF, consulta y webhook). No se envían a SUNAT. Máximo 30 ítems. Cada ítem: { label, value }.</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">[{ "label": "Cajero", "value": "Guillermo" }]</code></span><button class="mt-1.5 flex items-center gap-1 text-xs text-gray-500 border border-gray-200 rounded-full px-2.5 py-0.5 hover:bg-white hover:border-gray-300 transition-colors"><span class="text-gray-400 text-[10px]">−</span>Ocultar atributos hijos</button></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 48px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">label</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Etiqueta visible en el PDF (ej. Cajero, Método de pago, Mesa).</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">Cajero</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 48px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">value</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Valor del campo.</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">Guillermo</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 32px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">descuentoGlobal</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">number | null</span><span class="text-xs text-gray-300">opcional</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Descuento global aplicado al total del documento (con IGV incluido).</span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 32px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">enviarCorreo</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">boolean</span><span class="text-xs text-gray-300">opcional</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Si es true, envía el PDF y XML al correo del cliente tras la aceptación. Default: false.</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">true</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 32px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">cliente</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">object</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Datos del adquirente.</span><button class="mt-1.5 flex items-center gap-1 text-xs text-gray-500 border border-gray-200 rounded-full px-2.5 py-0.5 hover:bg-white hover:border-gray-300 transition-colors"><span class="text-gray-400 text-[10px]">−</span>Ocultar atributos hijos</button></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 48px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">tipoDocumento</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>6 = RUC · 1 = DNI · 0 = Sin documento (clientes varios).</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">6</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 48px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">numeroDocumento</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Número sin puntos ni guiones. RUC: 11 dígitos. DNI: 8 dígitos.</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">20609753413</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 48px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">denominacion</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Razón social o nombre completo.</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">EMPRESA S.A.C.</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 48px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">direccion</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string | null</span><span class="text-xs text-gray-300">opcional</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Requerida si tipoDocumento = 6 (RUC).</span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 48px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">correo</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string | null</span><span class="text-xs text-gray-300">opcional</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Correo del cliente para envío del PDF/XML.</span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 48px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">celular</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string | null</span><span class="text-xs text-gray-300">opcional</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Número de celular. Exactamente 9 dígitos.</span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 32px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">items</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">array</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Líneas del comprobante. Mínimo 1 ítem.</span><button class="mt-1.5 flex items-center gap-1 text-xs text-gray-500 border border-gray-200 rounded-full px-2.5 py-0.5 hover:bg-white hover:border-gray-300 transition-colors"><span class="text-gray-400 text-[10px]">−</span>Ocultar atributos hijos</button></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 48px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">unidadMedida</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Código SUNAT: NIU = unidad · ZZ = servicio · BX = caja · KGM = kilogramo · GLI = galón.</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">NIU</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 48px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">codigo</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string | null</span><span class="text-xs text-gray-300">opcional</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Código interno del producto (max 30 caracteres).</span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 48px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">descripcion</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Descripción del producto o servicio (max 250 caracteres).</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">SERVICIO DE CONSULTORÍA</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 48px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">cantidad</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">number</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Cantidad de unidades. Mínimo 0.</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">2</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 48px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">precioUnitario</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">number</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Precio por unidad con IGV incluido. La API calcula el IGV automáticamente.</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">590</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 48px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">tipoIgv</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">string</span><span class="text-xs text-red-500">requerido</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>10 = Gravado oneroso (tasa normal 18%).</span><span class="ml-1 text-gray-400">Ej: <code class="text-gray-500 font-mono">10</code></span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 48px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">descuento</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">number | null</span><span class="text-xs text-gray-300">opcional</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Descuento por ítem (con IGV incluido).</span></div></div><div class="flex gap-4 px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50 bg-gray-50/60" style="padding-left: 48px;"><div class="w-52 shrink-0"><code class="font-mono text-xs" style="color: rgb(59, 165, 224);">impuestoBolsa</code><div class="flex items-center gap-1.5 mt-0.5"><span class="text-gray-400 text-xs font-mono">boolean | null</span><span class="text-xs text-gray-300">opcional</span></div></div><div class="flex-1 text-gray-500 text-xs leading-relaxed pt-0.5"><span>Si es true, aplica ICBPER (impuesto a bolsas plásticas) a este ítem.</span></div></div></div></div></div><div class="space-y-4"><div class="group relative rounded-xl overflow-hidden border" style="background-color: rgb(246, 248, 250); border-color: rgb(226, 232, 240);"><div class="flex items-center justify-between px-4 py-2 border-b" style="background-color: rgb(238, 240, 243); border-color: rgb(226, 232, 240);"><span class="text-xs font-mono" style="color: rgb(107, 114, 128);">Factura con retención</span><span class="text-xs uppercase tracking-wider" style="color: rgb(156, 163, 175);">json</span></div><div class="relative"><pre class="overflow-x-auto p-4 text-sm leading-relaxed font-mono scrollbar-thin" style="color: rgb(55, 65, 81);"><code>{
+  <span style="color:#1a56a0">"webhook":</span> <span style="color:#b45309">false</span>,
+  <span style="color:#1a56a0">"documento":</span> {
+    <span style="color:#1a56a0">"sunatTransaccion":</span> <span style="color:#2d7a3a">"2001"</span>,
+    <span style="color:#1a56a0">"tipoComprobante":</span> <span style="color:#2d7a3a">"01"</span>,
+    <span style="color:#1a56a0">"serie":</span> <span style="color:#2d7a3a">"F001"</span>,
+    <span style="color:#1a56a0">"correlativo":</span> <span style="color:#2d7a3a">"1"</span>,
+    <span style="color:#1a56a0">"fechaEmision":</span> <span style="color:#2d7a3a">"2026-06-13"</span>,
+    <span style="color:#1a56a0">"formaPago":</span> <span style="color:#2d7a3a">"CONTADO"</span>,
+    <span style="color:#1a56a0">"otrosCampos":</span> [
+      {
+        <span style="color:#1a56a0">"label":</span> <span style="color:#2d7a3a">"Cajero"</span>,
+        <span style="color:#1a56a0">"value":</span> <span style="color:#2d7a3a">"Guillermo"</span>
+      },
+      {
+        <span style="color:#1a56a0">"label":</span> <span style="color:#2d7a3a">"Método de pago"</span>,
+        <span style="color:#1a56a0">"value":</span> <span style="color:#2d7a3a">"Yape"</span>
+      },
+      {
+        <span style="color:#1a56a0">"label":</span> <span style="color:#2d7a3a">"Mesa"</span>,
+        <span style="color:#1a56a0">"value":</span> <span style="color:#2d7a3a">"12"</span>
+      }
+    ],
+    <span style="color:#1a56a0">"moneda":</span> <span style="color:#2d7a3a">"PEN"</span>,
+    <span style="color:#1a56a0">"cliente":</span> {
+      <span style="color:#1a56a0">"tipoDocumento":</span> <span style="color:#2d7a3a">"6"</span>,
+      <span style="color:#1a56a0">"numeroDocumento":</span> <span style="color:#2d7a3a">"20000000001"</span>,
+      <span style="color:#1a56a0">"denominacion":</span> <span style="color:#2d7a3a">"EMPRESA S.A.C."</span>,
+      <span style="color:#1a56a0">"direccion":</span> <span style="color:#2d7a3a">"AV. LIMA 123 - LIMA - LIMA - LIMA"</span>,
+      <span style="color:#1a56a0">"correo":</span> <span style="color:#2d7a3a">"cliente@empresa.com"</span>
+    },
+    <span style="color:#1a56a0">"retencion":</span> {
+      <span style="color:#1a56a0">"tipo":</span> <span style="color:#2d7a3a">"01"</span>,
+      <span style="color:#1a56a0">"porcentaje":</span> <span style="color:#b45309">3</span>
+    },
+    <span style="color:#1a56a0">"items":</span> [
+      {
+        <span style="color:#1a56a0">"unidadMedida":</span> <span style="color:#2d7a3a">"NIU"</span>,
+        <span style="color:#1a56a0">"descripcion":</span> <span style="color:#2d7a3a">"Servicio profesional"</span>,
+        <span style="color:#1a56a0">"cantidad":</span> <span style="color:#b45309">1</span>,
+        <span style="color:#1a56a0">"precioUnitario":</span> <span style="color:#b45309">2360</span>,
+        <span style="color:#1a56a0">"tipoIgv":</span> <span style="color:#2d7a3a">"10"</span>
+      }
+    ]
+  }
+}</code></pre><button class="absolute top-3 right-3 p-1.5 rounded-lg border transition-all opacity-0 group-hover:opacity-100 shadow-sm" title="Copiar" style="background-color: rgb(255, 255, 255); border-color: rgb(226, 232, 240); color: rgb(156, 163, 175);"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg></button></div></div><div class="group relative rounded-xl overflow-hidden border" style="background-color: rgb(246, 248, 250); border-color: rgb(226, 232, 240);"><div class="flex items-center justify-between px-4 py-2 border-b" style="background-color: rgb(238, 240, 243); border-color: rgb(226, 232, 240);"><span class="text-xs font-mono" style="color: rgb(107, 114, 128);">Respuesta exitosa</span><span class="text-xs uppercase tracking-wider" style="color: rgb(156, 163, 175);">json</span></div><div class="relative"><pre class="overflow-x-auto p-4 text-sm leading-relaxed font-mono scrollbar-thin" style="color: rgb(55, 65, 81);"><code>{
+  <span style="color:#1a56a0">"success":</span> <span style="color:#b45309">true</span>,
+  <span style="color:#1a56a0">"message":</span> <span style="color:#2d7a3a">"La Factura número F001-00000001, ha sido aceptada."</span>,
+  <span style="color:#1a56a0">"data":</span> {
+    <span style="color:#1a56a0">"estado":</span> <span style="color:#2d7a3a">"ACEPTADA"</span>,
+    <span style="color:#1a56a0">"entorno":</span> <span style="color:#2d7a3a">"demo"</span>,
+    <span style="color:#1a56a0">"documento":</span> {
+      <span style="color:#1a56a0">"id":</span> <span style="color:#2d7a3a">"83ad82a0-680e-11f1-8e35-2d93ac0f2c84"</span>,
+      <span style="color:#1a56a0">"estado":</span> <span style="color:#2d7a3a">"ACEPTADA"</span>,
+      <span style="color:#1a56a0">"serie":</span> <span style="color:#2d7a3a">"F001"</span>,
+      <span style="color:#1a56a0">"correlativo":</span> <span style="color:#2d7a3a">"00000001"</span>,
+      <span style="color:#1a56a0">"tipo":</span> <span style="color:#2d7a3a">"FACTURA"</span>,
+      <span style="color:#1a56a0">"tipoCodigo":</span> <span style="color:#2d7a3a">"01"</span>,
+      <span style="color:#1a56a0">"fechaEmision":</span> <span style="color:#2d7a3a">"2026-06-13"</span>,
+      <span style="color:#1a56a0">"fechaVencimiento":</span> <span style="color:#2d7a3a">"2026-06-14"</span>,
+      <span style="color:#1a56a0">"moneda":</span> <span style="color:#2d7a3a">"PEN"</span>,
+      <span style="color:#1a56a0">"formaPago":</span> <span style="color:#2d7a3a">"CONTADO"</span>,
+      <span style="color:#1a56a0">"otrosCampos":</span> [
+        {
+          <span style="color:#1a56a0">"label":</span> <span style="color:#2d7a3a">"Cajero"</span>,
+          <span style="color:#1a56a0">"value":</span> <span style="color:#2d7a3a">"Guillermo"</span>
+        },
+        {
+          <span style="color:#1a56a0">"label":</span> <span style="color:#2d7a3a">"Método de pago"</span>,
+          <span style="color:#1a56a0">"value":</span> <span style="color:#2d7a3a">"Yape"</span>
+        },
+        {
+          <span style="color:#1a56a0">"label":</span> <span style="color:#2d7a3a">"Mesa"</span>,
+          <span style="color:#1a56a0">"value":</span> <span style="color:#2d7a3a">"12"</span>
+        }
+      ],
+      <span style="color:#1a56a0">"cliente":</span> {
+        <span style="color:#1a56a0">"tipoDocumento":</span> <span style="color:#2d7a3a">"6"</span>,
+        <span style="color:#1a56a0">"numeroDocumento":</span> <span style="color:#2d7a3a">"20000000001"</span>,
+        <span style="color:#1a56a0">"denominacion":</span> <span style="color:#2d7a3a">"EMPRESA S.A.C."</span>,
+        <span style="color:#1a56a0">"direccion":</span> <span style="color:#2d7a3a">"AV. LIMA 123 - LIMA - LIMA - LIMA"</span>
+      },
+      <span style="color:#1a56a0">"totales":</span> {
+        <span style="color:#1a56a0">"gravada":</span> <span style="color:#b45309">2000</span>,
+        <span style="color:#1a56a0">"exonerada":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"inafecta":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"exportacion":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"gratuita":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"descuento":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"anticipo":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"isc":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"igv":</span> <span style="color:#b45309">360</span>,
+        <span style="color:#1a56a0">"impuestoBolsa":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"otrosCargos":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"total":</span> <span style="color:#b45309">2360</span>
+      },
+      <span style="color:#1a56a0">"items":</span> [
+        {
+          <span style="color:#1a56a0">"codigo":</span> <span style="color:#2d7a3a">""</span>,
+          <span style="color:#1a56a0">"descripcion":</span> <span style="color:#2d7a3a">"Servicio profesional"</span>,
+          <span style="color:#1a56a0">"unidad":</span> <span style="color:#2d7a3a">"NIU"</span>,
+          <span style="color:#1a56a0">"cantidad":</span> <span style="color:#b45309">1</span>,
+          <span style="color:#1a56a0">"valorUnitario":</span> <span style="color:#b45309">2000</span>,
+          <span style="color:#1a56a0">"precioUnitario":</span> <span style="color:#b45309">2360</span>,
+          <span style="color:#1a56a0">"descuento":</span> <span style="color:#b45309">0</span>,
+          <span style="color:#1a56a0">"subtotal":</span> <span style="color:#b45309">2000</span>,
+          <span style="color:#1a56a0">"tipoIgv":</span> <span style="color:#2d7a3a">"10"</span>,
+          <span style="color:#1a56a0">"tipoIgvDescripcion":</span> <span style="color:#2d7a3a">"GRAVADO - OPERACIÓN ONEROSA"</span>,
+          <span style="color:#1a56a0">"igv":</span> <span style="color:#b45309">360</span>,
+          <span style="color:#1a56a0">"total":</span> <span style="color:#b45309">2360</span>
+        }
+      ],
+      <span style="color:#1a56a0">"guias":</span> [],
+      <span style="color:#1a56a0">"cuotas":</span> []
+    },
+    <span style="color:#1a56a0">"sunat":</span> {
+      <span style="color:#1a56a0">"estado":</span> <span style="color:#2d7a3a">"ACEPTADA"</span>,
+      <span style="color:#1a56a0">"codigo":</span> <span style="color:#2d7a3a">"0"</span>,
+      <span style="color:#1a56a0">"mensaje":</span> <span style="color:#2d7a3a">"La Factura numero F001-00000001 ha sido aceptada"</span>,
+      <span style="color:#1a56a0">"notas":</span> []
+    },
+    <span style="color:#1a56a0">"enlaces":</span> {
+      <span style="color:#1a56a0">"pdf":</span> <span style="color:#2d7a3a">"https://api.facturalo.pe/api/v3/documentos/83ad82a0-680e-11f1-8e35-2d93ac0f2c84.pdf"</span>,
+      <span style="color:#1a56a0">"pdfTicket":</span> <span style="color:#2d7a3a">"https://api.facturalo.pe/api/v3/documentos/83ad82a0-680e-11f1-8e35-2d93ac0f2c84.ticket.pdf"</span>,
+      <span style="color:#1a56a0">"xml":</span> <span style="color:#2d7a3a">"https://api.facturalo.pe/api/v3/documentos/83ad82a0-680e-11f1-8e35-2d93ac0f2c84.xml"</span>,
+      <span style="color:#1a56a0">"cdr":</span> <span style="color:#2d7a3a">"https://api.facturalo.pe/api/v3/documentos/83ad82a0-680e-11f1-8e35-2d93ac0f2c84.cdr"</span>
+    },
+    <span style="color:#1a56a0">"hash":</span> <span style="color:#2d7a3a">"xvQpVbLssRc8FlD8/0LuSYeIPo8="</span>,
+    <span style="color:#1a56a0">"cadenaQr":</span> <span style="color:#2d7a3a">"20601476551 | 01 | F001 | 00000001 | 13/06/2026 | 20000000001 | 2360.00 | xvQpVbLssRc8FlD8/0LuSYeIPo8= |"</span>,
+    <span style="color:#1a56a0">"codigoBarras":</span> <span style="color:#2d7a3a">"20601476551 | 01 | F001 | 00000001 | 13/06/2026 | 20000000001 | 2360.00 | xvQpVbLssRc8FlD8/0LuSYeIPo8= |"</span>
+  }
+}</code></pre><button class="absolute top-3 right-3 p-1.5 rounded-lg border transition-all opacity-0 group-hover:opacity-100 shadow-sm" title="Copiar" style="background-color: rgb(255, 255, 255); border-color: rgb(226, 232, 240); color: rgb(156, 163, 175);"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg></button></div></div><div class="group relative rounded-xl overflow-hidden border" style="background-color: rgb(246, 248, 250); border-color: rgb(226, 232, 240);"><div class="flex items-center justify-between px-4 py-2 border-b" style="background-color: rgb(238, 240, 243); border-color: rgb(226, 232, 240);"><span class="text-xs font-mono" style="color: rgb(107, 114, 128);">200 — webhook: true (EN_PROCESO)</span><span class="text-xs uppercase tracking-wider" style="color: rgb(156, 163, 175);">json</span></div><div class="relative"><pre class="overflow-x-auto p-4 text-sm leading-relaxed font-mono scrollbar-thin" style="color: rgb(55, 65, 81);"><code>{
+  <span style="color:#1a56a0">"success":</span> <span style="color:#b45309">true</span>,
+  <span style="color:#1a56a0">"message":</span> <span style="color:#2d7a3a">"El documento está siendo procesado por SUNAT. Recibirá una notificación en su webhook o puede consultar el estado en el enlace adjunto."</span>,
+  <span style="color:#1a56a0">"data":</span> {
+    <span style="color:#1a56a0">"entorno":</span> <span style="color:#2d7a3a">"demo"</span>,
+    <span style="color:#1a56a0">"documento":</span> {
+      <span style="color:#1a56a0">"id":</span> <span style="color:#2d7a3a">"7111d8e0-6891-11f1-ab2a-23413cd2ac7c"</span>,
+      <span style="color:#1a56a0">"estado":</span> <span style="color:#2d7a3a">"EN_PROCESO"</span>,
+      <span style="color:#1a56a0">"serie":</span> <span style="color:#2d7a3a">"F001"</span>,
+      <span style="color:#1a56a0">"correlativo":</span> <span style="color:#2d7a3a">"00000001"</span>,
+      <span style="color:#1a56a0">"tipo":</span> <span style="color:#2d7a3a">"FACTURA"</span>,
+      <span style="color:#1a56a0">"tipoCodigo":</span> <span style="color:#2d7a3a">"01"</span>,
+      <span style="color:#1a56a0">"fechaEmision":</span> <span style="color:#2d7a3a">"2026-06-13"</span>,
+      <span style="color:#1a56a0">"fechaVencimiento":</span> <span style="color:#2d7a3a">"2026-06-15"</span>,
+      <span style="color:#1a56a0">"moneda":</span> <span style="color:#2d7a3a">"PEN"</span>,
+      <span style="color:#1a56a0">"formaPago":</span> <span style="color:#2d7a3a">"CONTADO"</span>,
+      <span style="color:#1a56a0">"otrosCampos":</span> [
+        {
+          <span style="color:#1a56a0">"label":</span> <span style="color:#2d7a3a">"Cajero"</span>,
+          <span style="color:#1a56a0">"value":</span> <span style="color:#2d7a3a">"Guillermo"</span>
+        },
+        {
+          <span style="color:#1a56a0">"label":</span> <span style="color:#2d7a3a">"Método de pago"</span>,
+          <span style="color:#1a56a0">"value":</span> <span style="color:#2d7a3a">"Yape"</span>
+        },
+        {
+          <span style="color:#1a56a0">"label":</span> <span style="color:#2d7a3a">"Mesa"</span>,
+          <span style="color:#1a56a0">"value":</span> <span style="color:#2d7a3a">"12"</span>
+        }
+      ],
+      <span style="color:#1a56a0">"cliente":</span> {
+        <span style="color:#1a56a0">"tipoDocumento":</span> <span style="color:#2d7a3a">"6"</span>,
+        <span style="color:#1a56a0">"numeroDocumento":</span> <span style="color:#2d7a3a">"20000000001"</span>,
+        <span style="color:#1a56a0">"denominacion":</span> <span style="color:#2d7a3a">"EMPRESA S.A.C."</span>,
+        <span style="color:#1a56a0">"direccion":</span> <span style="color:#2d7a3a">"AV. LIMA 123 - LIMA - LIMA - LIMA"</span>
+      },
+      <span style="color:#1a56a0">"totales":</span> {
+        <span style="color:#1a56a0">"gravada":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"exonerada":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"inafecta":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"exportacion":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"gratuita":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"descuento":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"anticipo":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"isc":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"igv":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"impuestoBolsa":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"otrosCargos":</span> <span style="color:#b45309">0</span>,
+        <span style="color:#1a56a0">"total":</span> <span style="color:#b45309">0</span>
+      },
+      <span style="color:#1a56a0">"items":</span> [
+        {
+          <span style="color:#1a56a0">"codigo":</span> <span style="color:#2d7a3a">""</span>,
+          <span style="color:#1a56a0">"descripcion":</span> <span style="color:#2d7a3a">"Servicio profesional"</span>,
+          <span style="color:#1a56a0">"unidad":</span> <span style="color:#2d7a3a">"NIU"</span>,
+          <span style="color:#1a56a0">"cantidad":</span> <span style="color:#b45309">1</span>,
+          <span style="color:#1a56a0">"valorUnitario":</span> <span style="color:#b45309">2000</span>,
+          <span style="color:#1a56a0">"precioUnitario":</span> <span style="color:#b45309">2360</span>,
+          <span style="color:#1a56a0">"descuento":</span> <span style="color:#b45309">0</span>,
+          <span style="color:#1a56a0">"subtotal":</span> <span style="color:#b45309">2000</span>,
+          <span style="color:#1a56a0">"tipoIgv":</span> <span style="color:#2d7a3a">"10"</span>,
+          <span style="color:#1a56a0">"tipoIgvDescripcion":</span> <span style="color:#2d7a3a">"GRAVADO - OPERACIÓN ONEROSA"</span>,
+          <span style="color:#1a56a0">"igv":</span> <span style="color:#b45309">360</span>,
+          <span style="color:#1a56a0">"total":</span> <span style="color:#b45309">2360</span>
+        }
+      ],
+      <span style="color:#1a56a0">"guias":</span> [],
+      <span style="color:#1a56a0">"cuotas":</span> []
+    },
+    <span style="color:#1a56a0">"enlaces":</span> {
+      <span style="color:#1a56a0">"consulta":</span> <span style="color:#2d7a3a">"https://api.facturalo.pe/api/v3/documentos/7111d8e0-6891-11f1-ab2a-23413cd2ac7c"</span>
+    }
+  }
+}</code></pre><button class="absolute top-3 right-3 p-1.5 rounded-lg border transition-all opacity-0 group-hover:opacity-100 shadow-sm" title="Copiar" style="background-color: rgb(255, 255, 255); border-color: rgb(226, 232, 240); color: rgb(156, 163, 175);"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg></button></div></div><div class="group relative rounded-xl overflow-hidden border" style="background-color: rgb(246, 248, 250); border-color: rgb(226, 232, 240);"><div class="flex items-center justify-between px-4 py-2 border-b" style="background-color: rgb(238, 240, 243); border-color: rgb(226, 232, 240);"><span class="text-xs font-mono" style="color: rgb(107, 114, 128);">422 — Error de validación</span><span class="text-xs uppercase tracking-wider" style="color: rgb(156, 163, 175);">json</span></div><div class="relative"><pre class="overflow-x-auto p-4 text-sm leading-relaxed font-mono scrollbar-thin" style="color: rgb(55, 65, 81);"><code>{
+  <span style="color:#1a56a0">"success":</span> <span style="color:#b45309">false</span>,
+  <span style="color:#1a56a0">"message":</span> <span style="color:#2d7a3a">"Los datos enviados no son válidos."</span>,
+  <span style="color:#1a56a0">"errors":</span> {
+    <span style="color:#1a56a0">"documento.cliente.numeroDocumento":</span> [
+      <span style="color:#2d7a3a">"El número de documento debe tener 11 dígitos para tipo RUC."</span>
+    ],
+    <span style="color:#1a56a0">"documento.items":</span> [
+      <span style="color:#2d7a3a">"El campo items es requerido."</span>
+    ]
+  }
+}</code></pre><button class="absolute top-3 right-3 p-1.5 rounded-lg border transition-all opacity-0 group-hover:opacity-100 shadow-sm" title="Copiar" style="background-color: rgb(255, 255, 255); border-color: rgb(226, 232, 240); color: rgb(156, 163, 175);"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg></button></div></div><div class="group relative rounded-xl overflow-hidden border" style="background-color: rgb(246, 248, 250); border-color: rgb(226, 232, 240);"><div class="flex items-center justify-between px-4 py-2 border-b" style="background-color: rgb(238, 240, 243); border-color: rgb(226, 232, 240);"><span class="text-xs font-mono" style="color: rgb(107, 114, 128);">200 — Rechazada por SUNAT</span><span class="text-xs uppercase tracking-wider" style="color: rgb(156, 163, 175);">json</span></div><div class="relative"><pre class="overflow-x-auto p-4 text-sm leading-relaxed font-mono scrollbar-thin" style="color: rgb(55, 65, 81);"><code>{
+  <span style="color:#1a56a0">"success":</span> <span style="color:#b45309">false</span>,
+  <span style="color:#1a56a0">"message":</span> <span style="color:#2d7a3a">"El documento fue rechazado por SUNAT."</span>,
+  <span style="color:#1a56a0">"data":</span> {
+    <span style="color:#1a56a0">"estado":</span> <span style="color:#2d7a3a">"RECHAZADA"</span>,
+    <span style="color:#1a56a0">"entorno":</span> <span style="color:#2d7a3a">"demo"</span>,
+    <span style="color:#1a56a0">"documento":</span> {
+      <span style="color:#1a56a0">"id":</span> <span style="color:#2d7a3a">"9c948140-674e-11f1-85b5-d764057e10c4"</span>,
+      <span style="color:#1a56a0">"serie":</span> <span style="color:#2d7a3a">"F001"</span>,
+      <span style="color:#1a56a0">"correlativo":</span> <span style="color:#2d7a3a">"1"</span>,
+      <span style="color:#1a56a0">"tipo":</span> <span style="color:#2d7a3a">"FACTURA"</span>
+    },
+    <span style="color:#1a56a0">"sunat":</span> {
+      <span style="color:#1a56a0">"codigo":</span> <span style="color:#2d7a3a">"2800"</span>,
+      <span style="color:#1a56a0">"mensaje":</span> <span style="color:#2d7a3a">"El número de RUC del emisor no existe."</span>,
+      <span style="color:#1a56a0">"notas":</span> []
+    }
+  }
+}</code></pre><button class="absolute top-3 right-3 p-1.5 rounded-lg border transition-all opacity-0 group-hover:opacity-100 shadow-sm" title="Copiar" style="background-color: rgb(255, 255, 255); border-color: rgb(226, 232, 240); color: rgb(156, 163, 175);"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg></button></div></div></div></div>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<div class="md-content" data-md-component="content"> <article class="md-content__inner md-typeset"> <h1 id="uso-de-greenter">Uso de Greenter<a class="headerlink" href="#uso-de-greenter" title="Permanent link">¶</a></h1> <p>Más opciones que tenemos al utilizar <strong>Greenter</strong>.</p> <h2 id="generar-xml-firmado">Generar XML firmado<a class="headerlink" href="#generar-xml-firmado" title="Permanent link">¶</a></h2> <p>El ejemplo básico nos mostró como realizar todo el proceso de facturacion con un solo método <code>send()</code>, pero si necesitamos generar solo el XML firmado, lo cual seria útil para <strong>Boletas de Venta</strong> ya que estas no se envían a SUNAT individualmente.</p> <div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+
+<span class="k">use</span> <span class="nx">Greenter\Model\Sale\Invoice</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\See</span><span class="p">;</span>
+
+<span class="nv">$boleta</span> <span class="o">=</span> <span class="p">(</span><span class="k">new</span> <span class="nx">Invoice</span><span class="p">())</span>
+    <span class="o">-&gt;</span><span class="na">setUblVersion</span><span class="p">(</span><span class="s1">'2.1'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setTipoOperacion</span><span class="p">(</span><span class="s1">'0101'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setTipoDoc</span><span class="p">(</span><span class="s1">'03'</span><span class="p">)</span> <span class="c1">// Código para Boletas, ver Catalog. 51  </span>
+    <span class="o">-&gt;</span><span class="na">setSerie</span><span class="p">(</span><span class="s1">'B001'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setCorrelativo</span><span class="p">(</span><span class="s1">'1'</span><span class="p">)</span>
+    <span class="c1">// ...</span>
+    <span class="p">;</span>
+
+<span class="nv">$see</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">See</span><span class="p">();</span>
+<span class="nv">$see</span><span class="o">-&gt;</span><span class="na">setCertificate</span><span class="p">(</span><span class="nb">file_get_contents</span><span class="p">(</span><span class="no">__DIR__</span><span class="o">.</span><span class="s1">'/certificate.pem'</span><span class="p">));</span>
+
+<span class="nv">$xml</span> <span class="o">=</span> <span class="nv">$see</span><span class="o">-&gt;</span><span class="na">getXmlSigned</span><span class="p">(</span><span class="nv">$boleta</span><span class="p">);</span>
+
+<span class="nb">file_put_contents</span><span class="p">(</span><span class="s1">'20000000001-03-B001-1.xml'</span><span class="p">,</span> <span class="nv">$xml</span><span class="p">);</span>
+</code></pre></div> <h2 id="enviar-xml-generado">Enviar XML generado<a class="headerlink" href="#enviar-xml-generado" title="Permanent link">¶</a></h2> <p>Si necesitas enviar un XML previamente generado, debes seguir el siguiente ejemplo.</p> <div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+
+<span class="k">require</span> <span class="no">__DIR__</span><span class="o">.</span><span class="s1">'/vendor/autoload.php'</span><span class="p">;</span>
+
+<span class="nv">$see</span> <span class="o">=</span> <span class="k">require</span> <span class="no">__DIR__</span><span class="o">.</span><span class="s1">'/config.php'</span><span class="p">;</span>
+
+<span class="nv">$xmlSigned</span> <span class="o">=</span> <span class="nb">file_get_contents</span><span class="p">(</span><span class="s1">'20000000001-01-F001-1.xml'</span><span class="p">);</span>
+
+<span class="nv">$result</span> <span class="o">=</span> <span class="nv">$see</span><span class="o">-&gt;</span><span class="na">sendXmlFile</span><span class="p">(</span><span class="nv">$xmlSigned</span><span class="p">);</span>
+<span class="c1">// $result se maneja del mismo modo que con el metodo send()</span>
+</code></pre></div> <h2 id="resumen-diario">Resumen diario<a class="headerlink" href="#resumen-diario" title="Permanent link">¶</a></h2> <p>Para comunicar las boletas de ventas emitidas o anuladas, así como las notas de crédito/débito releacionadas, necesita hacerlo mediante un <em>resumen diario</em>. A diferencia del envío de una factura, donde la respuesta es inmediata, en este documento debemos hacer un consulta adicional para conocer su estado utilizando el numero de <em>ticket</em>.</p> <div class="highlight"><pre><span></span><code tabindex="0"><span class="cp">&lt;?php</span>
+
+<span class="k">use</span> <span class="nx">Greenter\Model\Company\Company</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Model\Company\Address</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Model\Sale\Document</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Model\Summary\Summary</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Model\Summary\SummaryDetail</span><span class="p">;</span>
+
+<span class="nv">$company</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Company</span><span class="p">();</span>
+<span class="nv">$company</span><span class="o">-&gt;</span><span class="na">setRuc</span><span class="p">(</span><span class="s1">'20000000001'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setRazonSocial</span><span class="p">(</span><span class="s1">'EMPRESA SAC'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setNombreComercial</span><span class="p">(</span><span class="s1">'EMPRESA'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setAddress</span><span class="p">((</span><span class="k">new</span> <span class="nx">Address</span><span class="p">())</span>
+        <span class="o">-&gt;</span><span class="na">setUbigueo</span><span class="p">(</span><span class="s1">'150101'</span><span class="p">)</span>
+        <span class="o">-&gt;</span><span class="na">setDepartamento</span><span class="p">(</span><span class="s1">'LIMA'</span><span class="p">)</span>
+        <span class="o">-&gt;</span><span class="na">setProvincia</span><span class="p">(</span><span class="s1">'LIMA'</span><span class="p">)</span>
+        <span class="o">-&gt;</span><span class="na">setDistrito</span><span class="p">(</span><span class="s1">'LIMA'</span><span class="p">)</span>
+        <span class="o">-&gt;</span><span class="na">setUrbanizacion</span><span class="p">(</span><span class="s1">'Albar'</span><span class="p">)</span>
+        <span class="o">-&gt;</span><span class="na">setDireccion</span><span class="p">(</span><span class="s1">'AV ROSALES'</span><span class="p">));</span>
+
+<span class="nv">$detail</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">SummaryDetail</span><span class="p">();</span>
+<span class="nv">$detail</span><span class="o">-&gt;</span><span class="na">setTipoDoc</span><span class="p">(</span><span class="s1">'07'</span><span class="p">)</span> <span class="c1">// Nota de Credito</span>
+    <span class="o">-&gt;</span><span class="na">setSerieNro</span><span class="p">(</span><span class="s1">'B001-4'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setDocReferencia</span><span class="p">((</span><span class="k">new</span> <span class="nx">Document</span><span class="p">())</span> <span class="c1">// Documento relacionado (Boleta)</span>
+        <span class="o">-&gt;</span><span class="na">setTipoDoc</span><span class="p">(</span><span class="s1">'03'</span><span class="p">)</span>
+        <span class="o">-&gt;</span><span class="na">setNroDoc</span><span class="p">(</span><span class="s1">'B001-1'</span><span class="p">))</span>
+    <span class="o">-&gt;</span><span class="na">setEstado</span><span class="p">(</span><span class="s1">'1'</span><span class="p">)</span> <span class="c1">// Emisión</span>
+    <span class="o">-&gt;</span><span class="na">setClienteTipo</span><span class="p">(</span><span class="s1">'1'</span><span class="p">)</span> <span class="c1">// Tipo documento identidad: DNI</span>
+    <span class="o">-&gt;</span><span class="na">setClienteNro</span><span class="p">(</span><span class="s1">'00000000'</span><span class="p">)</span> <span class="c1">// Nro de documento identidad</span>
+    <span class="o">-&gt;</span><span class="na">setTotal</span><span class="p">(</span><span class="mi">200</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setMtoOperGravadas</span><span class="p">(</span><span class="mi">40</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setMtoOperExoneradas</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setMtoOperInafectas</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setMtoIGV</span><span class="p">(</span><span class="mf">7.2</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setMtoISC</span><span class="p">(</span><span class="mf">2.8</span><span class="p">);</span>
+
+<span class="nv">$detail2</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">SummaryDetail</span><span class="p">();</span>
+<span class="nv">$detail2</span><span class="o">-&gt;</span><span class="na">setTipoDoc</span><span class="p">(</span><span class="s1">'03'</span><span class="p">)</span> <span class="c1">// Boleta</span>
+    <span class="o">-&gt;</span><span class="na">setSerieNro</span><span class="p">(</span><span class="s1">'B001-2'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setEstado</span><span class="p">(</span><span class="s1">'3'</span><span class="p">)</span> <span class="c1">// Anulación</span>
+    <span class="o">-&gt;</span><span class="na">setClienteTipo</span><span class="p">(</span><span class="s1">'1'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setClienteNro</span><span class="p">(</span><span class="s1">'00000000'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setTotal</span><span class="p">(</span><span class="mi">119</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setMtoOperGravadas</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setMtoOperInafectas</span><span class="p">(</span><span class="mf">24.4</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setMtoOperExoneradas</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setMtoOtrosCargos</span><span class="p">(</span><span class="mi">21</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setMtoIGV</span><span class="p">(</span><span class="mf">3.6</span><span class="p">);</span>
+
+<span class="nv">$resumen</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Summary</span><span class="p">();</span>
+<span class="nv">$resumen</span><span class="o">-&gt;</span><span class="na">setFecGeneracion</span><span class="p">(</span><span class="k">new</span> <span class="nx">\DateTime</span><span class="p">(</span><span class="s1">'2020-08-01'</span><span class="p">))</span> <span class="c1">// Fecha de emisión de las boletas.</span>
+    <span class="o">-&gt;</span><span class="na">setFecResumen</span><span class="p">(</span><span class="k">new</span> <span class="nx">\DateTime</span><span class="p">(</span><span class="s1">'2020-08-02'</span><span class="p">))</span> <span class="c1">// Fecha de envío del resumen diario.</span>
+    <span class="o">-&gt;</span><span class="na">setCorrelativo</span><span class="p">(</span><span class="s1">'001'</span><span class="p">)</span> <span class="c1">// Correlativo, necesario para diferenciar de otros Resumen diario del mismo día.</span>
+    <span class="o">-&gt;</span><span class="na">setCompany</span><span class="p">(</span><span class="nv">$company</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setDetails</span><span class="p">([</span><span class="nv">$detail</span><span class="p">,</span> <span class="nv">$detail2</span><span class="p">]);</span>
+
+<span class="nv">$result</span> <span class="o">=</span> <span class="nv">$see</span><span class="o">-&gt;</span><span class="na">send</span><span class="p">(</span><span class="nv">$resumen</span><span class="p">);</span>
+<span class="c1">// Guardar XML</span>
+<span class="nb">file_put_contents</span><span class="p">(</span><span class="nv">$resumen</span><span class="o">-&gt;</span><span class="na">getName</span><span class="p">()</span><span class="o">.</span><span class="s1">'.xml'</span><span class="p">,</span>
+                  <span class="nv">$see</span><span class="o">-&gt;</span><span class="na">getFactory</span><span class="p">()</span><span class="o">-&gt;</span><span class="na">getLastXml</span><span class="p">());</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nv">$result</span><span class="o">-&gt;</span><span class="na">isSuccess</span><span class="p">())</span> <span class="p">{</span>
+    <span class="c1">// Si hubo error al conectarse al servicio de SUNAT.</span>
+    <span class="nb">var_dump</span><span class="p">(</span><span class="nv">$result</span><span class="o">-&gt;</span><span class="na">getError</span><span class="p">());</span>
+    <span class="k">exit</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="nv">$ticket</span> <span class="o">=</span> <span class="nv">$result</span><span class="o">-&gt;</span><span class="na">getTicket</span><span class="p">();</span>
+<span class="k">echo</span> <span class="s1">'Ticket : '</span><span class="o">.</span><span class="nv">$ticket</span><span class="o">.</span><span class="nx">PHP_EOL</span><span class="p">;</span>
+
+<span class="nv">$statusResult</span> <span class="o">=</span> <span class="nv">$see</span><span class="o">-&gt;</span><span class="na">getStatus</span><span class="p">(</span><span class="nv">$ticket</span><span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nv">$statusResult</span><span class="o">-&gt;</span><span class="na">isSuccess</span><span class="p">())</span> <span class="p">{</span>
+    <span class="c1">// Si hubo error al conectarse al servicio de SUNAT.</span>
+    <span class="nb">var_dump</span><span class="p">(</span><span class="nv">$statusResult</span><span class="o">-&gt;</span><span class="na">getError</span><span class="p">());</span>
+    <span class="k">return</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">echo</span> <span class="nv">$statusResult</span><span class="o">-&gt;</span><span class="na">getCdrResponse</span><span class="p">()</span><span class="o">-&gt;</span><span class="na">getDescription</span><span class="p">();</span>
+<span class="c1">// Guardar CDR</span>
+<span class="nb">file_put_contents</span><span class="p">(</span><span class="s1">'R-'</span><span class="o">.</span><span class="nv">$resumen</span><span class="o">-&gt;</span><span class="na">getName</span><span class="p">()</span><span class="o">.</span><span class="s1">'.zip'</span><span class="p">,</span> <span class="nv">$statusResult</span><span class="o">-&gt;</span><span class="na">getCdrZip</span><span class="p">());</span>
+</code></pre></div> <h2 id="comunicacion-de-baja">Comunicacion de Baja<a class="headerlink" href="#comunicacion-de-baja" title="Permanent link">¶</a></h2> <p>Para comunicar a SUNAT las anulaciones de facturas y sus notas de crédito/débito releacionadas, necesita hacerlo mediante el documento de <em>comunicación de baja</em>. </p> <p>El envío a los servicios de SUNAT se maneja de la misma forma que el <em>resumen diario</em>.</p> <div class="highlight"><pre><span></span><code tabindex="0"><span class="cp">&lt;?php</span>
+
+<span class="k">use</span> <span class="nx">Greenter\Model\Voided\Voided</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Greenter\Model\Voided\VoidedDetail</span><span class="p">;</span>
+
+<span class="nv">$detail1</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">VoidedDetail</span><span class="p">();</span>
+<span class="nv">$detail1</span><span class="o">-&gt;</span><span class="na">setTipoDoc</span><span class="p">(</span><span class="s1">'01'</span><span class="p">)</span> <span class="c1">// Factura</span>
+    <span class="o">-&gt;</span><span class="na">setSerie</span><span class="p">(</span><span class="s1">'F001'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setCorrelativo</span><span class="p">(</span><span class="s1">'1'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setDesMotivoBaja</span><span class="p">(</span><span class="s1">'ERROR EN CÁLCULOS'</span><span class="p">);</span> <span class="c1">// Motivo por el cual se da de baja.</span>
+
+<span class="nv">$detail2</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">VoidedDetail</span><span class="p">();</span>
+<span class="nv">$detail2</span><span class="o">-&gt;</span><span class="na">setTipoDoc</span><span class="p">(</span><span class="s1">'07'</span><span class="p">)</span> <span class="c1">// Nota de Crédito</span>
+    <span class="o">-&gt;</span><span class="na">setSerie</span><span class="p">(</span><span class="s1">'FC01'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setCorrelativo</span><span class="p">(</span><span class="s1">'2'</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setDesMotivoBaja</span><span class="p">(</span><span class="s1">'ERROR DE RUC'</span><span class="p">);</span>
+
+<span class="nv">$cDeBaja</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Voided</span><span class="p">();</span>
+<span class="nv">$cDeBaja</span><span class="o">-&gt;</span><span class="na">setCorrelativo</span><span class="p">(</span><span class="s1">'00001'</span><span class="p">)</span> <span class="c1">// Correlativo, necesario para diferenciar c. de baja de en un mismo día.</span>
+    <span class="o">-&gt;</span><span class="na">setFecGeneracion</span><span class="p">(</span><span class="k">new</span> <span class="nx">\DateTime</span><span class="p">(</span><span class="s1">'2020-08-01'</span><span class="p">))</span> <span class="c1">// Fecha de emisión de los comprobantes a dar de baja</span>
+    <span class="o">-&gt;</span><span class="na">setFecComunicacion</span><span class="p">(</span><span class="k">new</span> <span class="nx">\DateTime</span><span class="p">(</span><span class="s1">'2020-08-02'</span><span class="p">))</span> <span class="c1">// Fecha de envio de la C. de baja</span>
+    <span class="o">-&gt;</span><span class="na">setCompany</span><span class="p">(</span><span class="nv">$company</span><span class="p">)</span>
+    <span class="o">-&gt;</span><span class="na">setDetails</span><span class="p">([</span><span class="nv">$detail1</span><span class="p">,</span> <span class="nv">$detail2</span><span class="p">]);</span>
+
+<span class="nv">$result</span> <span class="o">=</span> <span class="nv">$see</span><span class="o">-&gt;</span><span class="na">send</span><span class="p">(</span><span class="nv">$cDeBaja</span><span class="p">);</span>
+<span class="c1">// Guardar XML</span>
+<span class="nb">file_put_contents</span><span class="p">(</span><span class="nv">$cDeBaja</span><span class="o">-&gt;</span><span class="na">getName</span><span class="p">()</span><span class="o">.</span><span class="s1">'.xml'</span><span class="p">,</span>
+                  <span class="nv">$see</span><span class="o">-&gt;</span><span class="na">getFactory</span><span class="p">()</span><span class="o">-&gt;</span><span class="na">getLastXml</span><span class="p">());</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nv">$result</span><span class="o">-&gt;</span><span class="na">isSuccess</span><span class="p">())</span> <span class="p">{</span>
+    <span class="c1">// Si hubo error al conectarse al servicio de SUNAT.</span>
+    <span class="nb">var_dump</span><span class="p">(</span><span class="nv">$result</span><span class="o">-&gt;</span><span class="na">getError</span><span class="p">());</span>
+    <span class="k">exit</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="nv">$ticket</span> <span class="o">=</span> <span class="nv">$result</span><span class="o">-&gt;</span><span class="na">getTicket</span><span class="p">();</span>
+<span class="k">echo</span> <span class="s1">'Ticket : '</span><span class="o">.</span><span class="nv">$ticket</span><span class="o">.</span><span class="nx">PHP_EOL</span><span class="p">;</span>
+
+<span class="nv">$statusResult</span> <span class="o">=</span> <span class="nv">$see</span><span class="o">-&gt;</span><span class="na">getStatus</span><span class="p">(</span><span class="nv">$ticket</span><span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nv">$statusResult</span><span class="o">-&gt;</span><span class="na">isSuccess</span><span class="p">())</span> <span class="p">{</span>
+    <span class="c1">// Si hubo error al conectarse al servicio de SUNAT.</span>
+    <span class="nb">var_dump</span><span class="p">(</span><span class="nv">$statusResult</span><span class="o">-&gt;</span><span class="na">getError</span><span class="p">());</span>
+    <span class="k">return</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">echo</span> <span class="nv">$statusResult</span><span class="o">-&gt;</span><span class="na">getCdrResponse</span><span class="p">()</span><span class="o">-&gt;</span><span class="na">getDescription</span><span class="p">();</span>
+<span class="c1">// Guardar CDR</span>
+<span class="nb">file_put_contents</span><span class="p">(</span><span class="s1">'R-'</span><span class="o">.</span><span class="nv">$cDeBaja</span><span class="o">-&gt;</span><span class="na">getName</span><span class="p">()</span><span class="o">.</span><span class="s1">'.zip'</span><span class="p">,</span> <span class="nv">$statusResult</span><span class="o">-&gt;</span><span class="na">getCdrZip</span><span class="p">());</span>
+</code></pre></div> <div class="admonition warning"> <p class="admonition-title">Anulación de Boletas</p> <p>Para anular boletas y NCR, NDB relacionadas, se utiliza el resumen diario indicando el campo <code>estado=3</code></p> </div> </article> </div>

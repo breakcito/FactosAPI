@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Document</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-10"><script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","@id":"https://docs.facturalo.pe/documentos/listar#article","headline":"Listar documentos","description":"Retorna los comprobantes electrónicos de la empresa paginados. Soporta filtros por establecimiento, fecha de emisión, tipo de comprobante y estado SUNAT.","url":"https://docs.facturalo.pe/documentos/listar","inLanguage":"es-PE","isPartOf":{"@id":"https://docs.facturalo.pe/#website"},"author":{"@id":"https://www.consultiadigital.com/#organization"},"publisher":{"@id":"https://www.consultiadigital.com/#organization"},"about":{"@type":"SoftwareSourceCode","programmingLanguage":"HTTP","runtimePlatform":"REST API","description":"GET https://api.facturalo.pe/api/v3/empresas/documentos"},"keywords":["Listar documentos","Facturalo API","SUNAT","comprobantes electrónicos","facturación electrónica Perú"],"proficiencyLevel":"Expert","dependencies":"API key (sk_live_* o sk_test_*)"}</script><script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","@id":"https://docs.facturalo.pe/documentos/listar#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Inicio","item":"https://docs.facturalo.pe"},{"@type":"ListItem","position":2,"name":"Documentos","item":"https://docs.facturalo.pe/documentos/listar"},{"@type":"ListItem","position":3,"name":"Listar documentos","item":"https://docs.facturalo.pe/documentos/listar"}]}</script><div><div class="mb-8"><h1 class="text-2xl font-bold text-gray-900 mb-2">Listar documentos</h1><p class="text-gray-500 text-sm mb-4 leading-relaxed">Retorna los documentos de la empresa paginados. Soporta filtros por establecimiento, fecha, tipo y estado.</p><div class="flex items-start gap-3 px-4 py-3 rounded-xl font-mono border" style="background-color: rgb(234, 245, 252); border-color: rgb(184, 221, 244);"><span class="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-mono font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 ">GET</span><span class="text-sm break-all" style="color: rgb(30, 111, 159);">https://api.facturalo.pe/api/v3/empresas/documentos</span></div></div><div class="mb-8"><h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Query params</h2><div class="border border-gray-200 rounded-xl overflow-hidden"><table class="w-full text-xs"><thead><tr class="border-b border-gray-200 bg-gray-50"><th class="px-4 py-2 text-left font-semibold text-gray-500">Param</th><th class="px-4 py-2 text-left font-semibold text-gray-500">Tipo</th><th class="px-4 py-2 text-left font-semibold text-gray-500">Descripción</th></tr></thead><tbody><tr class="border-b border-gray-100 last:border-0 bg-white"><td class="px-4 py-2"><code class="font-mono text-xs text-blue-700">establecimiento</code><span class="ml-1.5 text-xs text-gray-300">opcional</span></td><td class="px-4 py-2 text-xs text-gray-400 font-mono">uuid</td><td class="px-4 py-2 text-xs text-gray-500 leading-relaxed">Filtra por establecimiento.</td></tr><tr class="border-b border-gray-100 last:border-0 bg-gray-50/60"><td class="px-4 py-2"><code class="font-mono text-xs text-blue-700">fecha_inicio</code><span class="ml-1.5 text-xs text-gray-300">opcional</span></td><td class="px-4 py-2 text-xs text-gray-400 font-mono">date</td><td class="px-4 py-2 text-xs text-gray-500 leading-relaxed">fecha_emision &gt;= valor. Formato YYYY-MM-DD.</td></tr><tr class="border-b border-gray-100 last:border-0 bg-white"><td class="px-4 py-2"><code class="font-mono text-xs text-blue-700">fecha_fin</code><span class="ml-1.5 text-xs text-gray-300">opcional</span></td><td class="px-4 py-2 text-xs text-gray-400 font-mono">date</td><td class="px-4 py-2 text-xs text-gray-500 leading-relaxed">fecha_emision &lt;= valor. Formato YYYY-MM-DD.</td></tr><tr class="border-b border-gray-100 last:border-0 bg-gray-50/60"><td class="px-4 py-2"><code class="font-mono text-xs text-blue-700">limite</code><span class="ml-1.5 text-xs text-gray-300">opcional</span></td><td class="px-4 py-2 text-xs text-gray-400 font-mono">int</td><td class="px-4 py-2 text-xs text-gray-500 leading-relaxed">Cantidad de resultados. Default 20, máx 100.</td></tr><tr class="border-b border-gray-100 last:border-0 bg-white"><td class="px-4 py-2"><code class="font-mono text-xs text-blue-700">tipo</code><span class="ml-1.5 text-xs text-gray-300">opcional</span></td><td class="px-4 py-2 text-xs text-gray-400 font-mono">string</td><td class="px-4 py-2 text-xs text-gray-500 leading-relaxed">01 = Factura · 03 = Boleta · 07 = NC · 08 = ND.</td></tr><tr class="border-b border-gray-100 last:border-0 bg-gray-50/60"><td class="px-4 py-2"><code class="font-mono text-xs text-blue-700">estado</code><span class="ml-1.5 text-xs text-gray-300">opcional</span></td><td class="px-4 py-2 text-xs text-gray-400 font-mono">string</td><td class="px-4 py-2 text-xs text-gray-500 leading-relaxed">ACEPTADA · RECHAZADA · ANULADA · PENDIENTE_RESUMEN · etc.</td></tr></tbody></table></div></div><div class="mb-8"><h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Paginación</h2><div class="border border-gray-200 rounded-xl overflow-hidden"><table class="w-full text-xs"><thead><tr class="border-b border-gray-200 bg-gray-50"><th class="px-4 py-2 text-left font-semibold text-gray-500">Campo</th><th class="px-4 py-2 text-left font-semibold text-gray-500">Descripción</th></tr></thead><tbody><tr class="border-b border-gray-100 last:border-0 bg-white"><td class="px-4 py-2 font-mono text-blue-700">total</td><td class="px-4 py-2 text-gray-500">Total de documentos que coinciden con los filtros.</td></tr><tr class="border-b border-gray-100 last:border-0 bg-gray-50/60"><td class="px-4 py-2 font-mono text-blue-700">limite</td><td class="px-4 py-2 text-gray-500">Cantidad de resultados por página.</td></tr><tr class="border-b border-gray-100 last:border-0 bg-white"><td class="px-4 py-2 font-mono text-blue-700">pagina</td><td class="px-4 py-2 text-gray-500">Página actual.</td></tr><tr class="border-b border-gray-100 last:border-0 bg-gray-50/60"><td class="px-4 py-2 font-mono text-blue-700">paginas</td><td class="px-4 py-2 text-gray-500">Total de páginas disponibles.</td></tr></tbody></table></div></div></div><div class="space-y-4"><div class="group relative rounded-xl overflow-hidden border" style="background-color: rgb(246, 248, 250); border-color: rgb(226, 232, 240);"><div class="flex items-center justify-between px-4 py-2 border-b" style="background-color: rgb(238, 240, 243); border-color: rgb(226, 232, 240);"><span class="text-xs font-mono" style="color: rgb(107, 114, 128);">Request</span><span class="text-xs uppercase tracking-wider" style="color: rgb(156, 163, 175);">json</span></div><div class="relative"><pre class="overflow-x-auto p-4 text-sm leading-relaxed font-mono scrollbar-thin" style="color: rgb(55, 65, 81);"><code><span style="color:#9ca3af;font-style:italic">// Sin body — GET request</span>
+GET /empresas/documentos?tipo=<span style="color:#b45309">03</span>&amp;fecha_inicio=<span style="color:#b45309">2026</span><span style="color:#b45309">-06</span><span style="color:#b45309">-01</span>&amp;fecha_fin=<span style="color:#b45309">2026</span><span style="color:#b45309">-06</span><span style="color:#b45309">-30</span>&amp;limite=<span style="color:#b45309">20</span></code></pre><button class="absolute top-3 right-3 p-1.5 rounded-lg border transition-all opacity-0 group-hover:opacity-100 shadow-sm" title="Copiar" style="background-color: rgb(255, 255, 255); border-color: rgb(226, 232, 240); color: rgb(156, 163, 175);"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg></button></div></div><div class="group relative rounded-xl overflow-hidden border" style="background-color: rgb(246, 248, 250); border-color: rgb(226, 232, 240);"><div class="flex items-center justify-between px-4 py-2 border-b" style="background-color: rgb(238, 240, 243); border-color: rgb(226, 232, 240);"><span class="text-xs font-mono" style="color: rgb(107, 114, 128);">200 — Respuesta exitosa</span><span class="text-xs uppercase tracking-wider" style="color: rgb(156, 163, 175);">json</span></div><div class="relative"><pre class="overflow-x-auto p-4 text-sm leading-relaxed font-mono scrollbar-thin" style="color: rgb(55, 65, 81);"><code>{
+  <span style="color:#1a56a0">"success":</span> <span style="color:#b45309">true</span>,
+  <span style="color:#1a56a0">"message":</span> <span style="color:#2d7a3a">"Documentos obtenidos correctamente."</span>,
+  <span style="color:#1a56a0">"data":</span> {
+    <span style="color:#1a56a0">"entorno":</span> <span style="color:#2d7a3a">"demo"</span>,
+    <span style="color:#1a56a0">"paginacion":</span> {
+      <span style="color:#1a56a0">"total":</span> <span style="color:#b45309">46</span>,
+      <span style="color:#1a56a0">"limite":</span> <span style="color:#b45309">20</span>,
+      <span style="color:#1a56a0">"pagina":</span> <span style="color:#b45309">1</span>,
+      <span style="color:#1a56a0">"paginas":</span> <span style="color:#b45309">3</span>
+    },
+    <span style="color:#1a56a0">"documentos":</span> [
+      {
+        <span style="color:#1a56a0">"id":</span> <span style="color:#2d7a3a">"9c948140-674e-11f1-85b5-d764057e10c4"</span>,
+        <span style="color:#1a56a0">"serie":</span> <span style="color:#2d7a3a">"B001"</span>,
+        <span style="color:#1a56a0">"correlativo":</span> <span style="color:#2d7a3a">"00000153"</span>,
+        <span style="color:#1a56a0">"tipo":</span> <span style="color:#2d7a3a">"DOCUMENTO"</span>,
+        <span style="color:#1a56a0">"tipoCodigo":</span> <span style="color:#2d7a3a">"03"</span>,
+        <span style="color:#1a56a0">"fechaEmision":</span> <span style="color:#2d7a3a">"2026-06-13"</span>,
+        <span style="color:#1a56a0">"moneda":</span> <span style="color:#2d7a3a">"PEN"</span>,
+        <span style="color:#1a56a0">"cliente":</span> {
+          <span style="color:#1a56a0">"numeroDocumento":</span> <span style="color:#2d7a3a">"20000000001"</span>,
+          <span style="color:#1a56a0">"denominacion":</span> <span style="color:#2d7a3a">"EMPRESA CLIENTE SAC"</span>
+        },
+        <span style="color:#1a56a0">"totales":</span> {
+          <span style="color:#1a56a0">"gravada":</span> <span style="color:#b45309">500</span>,
+          <span style="color:#1a56a0">"igv":</span> <span style="color:#b45309">90</span>,
+          <span style="color:#1a56a0">"total":</span> <span style="color:#b45309">590</span>
+        },
+        <span style="color:#1a56a0">"sunat":</span> {
+          <span style="color:#1a56a0">"estado":</span> <span style="color:#2d7a3a">"ACEPTADA"</span>,
+          <span style="color:#1a56a0">"codigo":</span> <span style="color:#2d7a3a">"0"</span>
+        },
+        <span style="color:#1a56a0">"anulado":</span> <span style="color:#b45309">false</span>,
+        <span style="color:#1a56a0">"enlaces":</span> {
+          <span style="color:#1a56a0">"pdf":</span> <span style="color:#2d7a3a">"https://api.facturalo.pe/api/v3/documentos/9c948140-674e-11f1-85b5-d764057e10c4.pdf"</span>,
+          <span style="color:#1a56a0">"pdfTicket":</span> <span style="color:#2d7a3a">"https://api.facturalo.pe/api/v3/documentos/9c948140-674e-11f1-85b5-d764057e10c4.ticket.pdf"</span>,
+          <span style="color:#1a56a0">"xml":</span> <span style="color:#2d7a3a">"https://api.facturalo.pe/api/v3/documentos/9c948140-674e-11f1-85b5-d764057e10c4.xml"</span>,
+          <span style="color:#1a56a0">"cdr":</span> <span style="color:#2d7a3a">"https://api.facturalo.pe/api/v3/documentos/9c948140-674e-11f1-85b5-d764057e10c4.cdr"</span>
+        }
+      },
+      {
+        <span style="color:#1a56a0">"id":</span> <span style="color:#2d7a3a">"b8731080-6723-11f1-89fc-7d6d1075fa47"</span>,
+        <span style="color:#1a56a0">"serie":</span> <span style="color:#2d7a3a">"B001"</span>,
+        <span style="color:#1a56a0">"correlativo":</span> <span style="color:#2d7a3a">"00000012"</span>,
+        <span style="color:#1a56a0">"tipo":</span> <span style="color:#2d7a3a">"DOCUMENTO"</span>,
+        <span style="color:#1a56a0">"tipoCodigo":</span> <span style="color:#2d7a3a">"03"</span>,
+        <span style="color:#1a56a0">"fechaEmision":</span> <span style="color:#2d7a3a">"2026-06-13"</span>,
+        <span style="color:#1a56a0">"moneda":</span> <span style="color:#2d7a3a">"PEN"</span>,
+        <span style="color:#1a56a0">"cliente":</span> {
+          <span style="color:#1a56a0">"numeroDocumento":</span> <span style="color:#2d7a3a">"20609753413"</span>,
+          <span style="color:#1a56a0">"denominacion":</span> <span style="color:#2d7a3a">"TEC WORL S.A.C."</span>
+        },
+        <span style="color:#1a56a0">"totales":</span> {
+          <span style="color:#1a56a0">"gravada":</span> <span style="color:#b45309">300</span>,
+          <span style="color:#1a56a0">"igv":</span> <span style="color:#b45309">54</span>,
+          <span style="color:#1a56a0">"total":</span> <span style="color:#b45309">354</span>
+        },
+        <span style="color:#1a56a0">"guias":</span> [
+          {
+            <span style="color:#1a56a0">"tipoDocumento":</span> <span style="color:#2d7a3a">"09"</span>,
+            <span style="color:#1a56a0">"numeroDocumento":</span> <span style="color:#2d7a3a">"T001-00000001"</span>
+          }
+        ],
+        <span style="color:#1a56a0">"sunat":</span> {
+          <span style="color:#1a56a0">"estado":</span> <span style="color:#2d7a3a">"ACEPTADA"</span>,
+          <span style="color:#1a56a0">"codigo":</span> <span style="color:#2d7a3a">"0"</span>
+        },
+        <span style="color:#1a56a0">"anulado":</span> <span style="color:#b45309">false</span>,
+        <span style="color:#1a56a0">"enlaces":</span> {
+          <span style="color:#1a56a0">"pdf":</span> <span style="color:#2d7a3a">"https://api.facturalo.pe/api/v3/documentos/b8731080-6723-11f1-89fc-7d6d1075fa47.pdf"</span>,
+          <span style="color:#1a56a0">"pdfTicket":</span> <span style="color:#2d7a3a">"https://api.facturalo.pe/api/v3/documentos/b8731080-6723-11f1-89fc-7d6d1075fa47.ticket.pdf"</span>,
+          <span style="color:#1a56a0">"xml":</span> <span style="color:#2d7a3a">"https://api.facturalo.pe/api/v3/documentos/b8731080-6723-11f1-89fc-7d6d1075fa47.xml"</span>,
+          <span style="color:#1a56a0">"cdr":</span> <span style="color:#2d7a3a">"https://api.facturalo.pe/api/v3/documentos/b8731080-6723-11f1-89fc-7d6d1075fa47.cdr"</span>
+        }
+      },
+      {
+        <span style="color:#1a56a0">"...":</span> <span style="color:#2d7a3a">"// 18 documentos más en esta página"</span>
+      }
+    ]
+  }
+}</code></pre><button class="absolute top-3 right-3 p-1.5 rounded-lg border transition-all opacity-0 group-hover:opacity-100 shadow-sm" title="Copiar" style="background-color: rgb(255, 255, 255); border-color: rgb(226, 232, 240); color: rgb(156, 163, 175);"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg></button></div></div></div></div>
+        
+    </body>
+</html>
