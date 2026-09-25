@@ -1,8 +1,0 @@
-.git
-.github
-.idea
-cache
-files
-vendor
-.gitignore
-/*.md
