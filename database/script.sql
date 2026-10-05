@@ -436,7 +436,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- ==============================================================================
 -- INSERTS SEMILLA (DATOS INICIALES PARA TESTING CON SUNAT BETA)
 -- ==============================================================================
--- 1. Insertar Usuario Administrador Principal
+-- 1. Insertar Usuario Administrador Principal (email: admin@factos.pe, password: password) 
 INSERT INTO
   `users` (
     `id`,
