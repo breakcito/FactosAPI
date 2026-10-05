@@ -54,8 +54,11 @@ class Company extends Model
         'department',
         'province',
         'district',
+        'establishment_code',
         'sol_user',
         'sol_pass',
+        'client_id',
+        'client_secret',
         'certificate_path',
         'certificate_pass',
         'webhook_url',
@@ -73,6 +76,7 @@ class Company extends Model
      */
     protected $hidden = [
         'sol_pass',
+        'client_secret',
         'certificate_pass',
         'webhook_secret',
     ];
@@ -84,6 +88,7 @@ class Company extends Model
     {
         return [
             'sol_pass' => 'encrypted',
+            'client_secret' => 'encrypted',
             'certificate_pass' => 'encrypted',
             'is_production' => 'boolean',
             'is_active' => 'boolean',

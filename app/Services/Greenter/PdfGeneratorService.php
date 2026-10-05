@@ -148,6 +148,14 @@ class PdfGeneratorService
                     <td class='label'>Forma de Pago:</td>
                     <td>{$formaPago}</td>
                 </tr>
+                ".($document->purchase_order || $document->plate_number ? "
+                <tr>
+                    <td class='label'>".($document->purchase_order ? 'O/C:' : '').'</td>
+                    <td>'.($document->purchase_order ?: '')."</td>
+                    <td class='label'>".($document->plate_number ? 'Placa:' : '').'</td>
+                    <td>'.($document->plate_number ?: '').'</td>
+                </tr>
+                ' : '')."
             </table>
 
             <table class='items-table'>
@@ -184,6 +192,11 @@ class PdfGeneratorService
                                 <td>Op. Gravadas:</td>
                                 <td class='text-right'>{$document->currency} ".number_format((float) $document->total_taxable, 2).'</td>
                             </tr>
+                            '.((float) ($document->total_exportation ?? 0) > 0 ? "
+                            <tr>
+                                <td>Op. Exportación:</td>
+                                <td class='text-right'>{$document->currency} ".number_format((float) $document->total_exportation, 2).'</td>
+                            </tr>' : '').'
                             '.((float) $document->total_exonerated > 0 ? "
                             <tr>
                                 <td>Op. Exoneradas:</td>
@@ -193,11 +206,26 @@ class PdfGeneratorService
                             <tr>
                                 <td>Op. Inafectas:</td>
                                 <td class='text-right'>{$document->currency} ".number_format((float) $document->total_unaffected, 2).'</td>
+                            </tr>' : '').'
+                            '.((float) ($document->total_free ?? 0) > 0 ? "
+                            <tr>
+                                <td>Op. Gratuitas:</td>
+                                <td class='text-right'>{$document->currency} ".number_format((float) $document->total_free, 2).'</td>
+                            </tr>' : '').'
+                            '.((float) $document->total_discount > 0 ? "
+                            <tr>
+                                <td>Descuento Total:</td>
+                                <td class='text-right'>{$document->currency} -".number_format((float) $document->total_discount, 2).'</td>
                             </tr>' : '')."
                             <tr>
                                 <td>I.G.V. (18%):</td>
-                                <td class='text-right'>{$document->currency} ".number_format((float) $document->total_igv, 2)."</td>
+                                <td class='text-right'>{$document->currency} ".number_format((float) $document->total_igv, 2).'</td>
                             </tr>
+                            '.((float) $document->total_icbper > 0 ? "
+                            <tr>
+                                <td>I.C.B.P.E.R.:</td>
+                                <td class='text-right'>{$document->currency} ".number_format((float) $document->total_icbper, 2).'</td>
+                            </tr>' : '')."
                             <tr class='total-row'>
                                 <td>IMPORTE TOTAL:</td>
                                 <td class='text-right'>{$document->currency} ".number_format((float) $document->total, 2)."</td>

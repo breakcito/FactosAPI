@@ -16,6 +16,7 @@ class StoreInvoiceRequest extends FormRequest
     {
         $this->merge([
             'type_code' => $this->determineTypeCode(),
+            'operation_type' => $this->determineOperationType(),
         ]);
     }
 
@@ -25,6 +26,7 @@ class StoreInvoiceRequest extends FormRequest
     public function rules(): array
     {
         $typeCode = $this->determineTypeCode();
+        $isExport = $this->isExport();
 
         return [
             'company_id' => [
@@ -33,6 +35,8 @@ class StoreInvoiceRequest extends FormRequest
                 Rule::exists('companies', 'id')->where('user_id', $this->user()?->id),
             ],
             'type_code' => ['nullable', 'string', 'in:01,03,07,08'],
+            'operation_type' => ['nullable', 'string', 'size:4'],
+            'establishment_code' => ['nullable', 'string', 'size:4'],
             'external_id' => ['nullable', 'string', 'max:100'],
             'series' => ['required', 'string', 'size:4', 'regex:/^[FB][A-Z0-9]{3}$/i'],
             'correlative' => [
@@ -79,6 +83,10 @@ class StoreInvoiceRequest extends FormRequest
             'related_documents.*.type_code' => ['required_with:related_documents', 'string'],
             'related_documents.*.number' => ['required_with:related_documents', 'string'],
 
+            'purchase_order' => ['nullable', 'string', 'max:50'],
+            'plate_number' => ['nullable', 'string', 'max:20'],
+            'extra_fields' => ['nullable', 'array'],
+
             // Datos de Nota (si es 07 u 08)
             'note' => ['nullable', 'array', Rule::requiredIf(in_array($typeCode, ['07', '08']))],
             'note.affected_type' => ['required_with:note', 'string', 'in:01,03'],
@@ -92,13 +100,13 @@ class StoreInvoiceRequest extends FormRequest
             'client.doc_type' => [
                 'required',
                 'string',
-                $typeCode === '01' ? 'in:6' : 'in:0,1,4,6,7',
+                ($typeCode === '01' && ! $isExport) ? 'in:6' : 'in:0,1,4,6,7',
             ],
             'client.doc_number' => [
                 'required',
                 'string',
-                $typeCode === '01' ? 'size:11' : 'max:15',
-                $typeCode === '01' ? 'regex:/^(10|15|17|20)\d{9}$/' : 'regex:/^[A-Z0-9\-]+$/i',
+                ($typeCode === '01' && ! $isExport) ? 'size:11' : 'max:15',
+                ($typeCode === '01' && ! $isExport) ? 'regex:/^(10|15|17|20)\d{9}$/' : 'regex:/^[A-Z0-9\-]+$/i',
             ],
             'client.name' => ['required', 'string', 'max:255'],
             'client.address' => ['nullable', 'string', 'max:255'],
@@ -121,6 +129,8 @@ class StoreInvoiceRequest extends FormRequest
             'totals.taxable' => ['nullable', 'numeric', 'min:0'],
             'totals.unaffected' => ['nullable', 'numeric', 'min:0'],
             'totals.exonerated' => ['nullable', 'numeric', 'min:0'],
+            'totals.free' => ['nullable', 'numeric', 'min:0'],
+            'totals.exportation' => ['nullable', 'numeric', 'min:0'],
             'totals.igv' => ['nullable', 'numeric', 'min:0'],
             'totals.icbper' => ['nullable', 'numeric', 'min:0'],
             'totals.discount' => ['nullable', 'numeric', 'min:0'],
@@ -169,12 +179,64 @@ class StoreInvoiceRequest extends FormRequest
         return '01'; // Factura
     }
 
+    public function determineOperationType(): string
+    {
+        if ($this->filled('operation_type')) {
+            return (string) $this->input('operation_type');
+        }
+        if ($this->filled('sunat_transaction')) {
+            return (string) $this->input('sunat_transaction');
+        }
+        if ($this->filled('tipo_operacion')) {
+            return (string) $this->input('tipo_operacion');
+        }
+
+        if ($this->isExport()) {
+            return '0200'; // Exportación
+        }
+
+        if ($this->filled('detraction')) {
+            return '1001'; // Detracción
+        }
+
+        if ($this->filled('retention')) {
+            return '2001'; // Retención
+        }
+
+        return '0101'; // Venta interna por defecto
+    }
+
+    public function isExport(): bool
+    {
+        $op = (string) ($this->input('operation_type') ?? $this->input('sunat_transaction') ?? $this->input('tipo_operacion') ?? '');
+        if ($op === '0200' || $op === '0201') {
+            return true;
+        }
+
+        $items = $this->input('items', []);
+        if (is_array($items) && ! empty($items)) {
+            $allExport = true;
+            foreach ($items as $item) {
+                if (! isset($item['igv_type']) || (string) $item['igv_type'] !== '40') {
+                    $allExport = false;
+                    break;
+                }
+            }
+            if ($allExport) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * @return array<string, string>
      */
     public function messages(): array
     {
         $typeCode = $this->determineTypeCode();
+        $isExport = $this->isExport();
 
         return [
             'company_id.required' => 'El identificador de la empresa emisora es obligatorio.',
@@ -185,11 +247,11 @@ class StoreInvoiceRequest extends FormRequest
             'totals.total.required' => 'El importe total del comprobante es obligatorio.',
             'installments.required_if' => 'Las cuotas son requeridas cuando la forma de pago es al crédito.',
             'note.required' => 'El objeto note es obligatorio para Notas de Crédito y Débito.',
-            'client.doc_type.in' => $typeCode === '01'
-                ? 'Para Facturas (01) el tipo de documento del cliente debe ser RUC (6).'
+            'client.doc_type.in' => ($typeCode === '01' && ! $isExport)
+                ? 'Para Facturas (01) de venta nacional el tipo de documento del cliente debe ser RUC (6).'
                 : 'El tipo de documento del cliente no es válido.',
             'client.doc_number.size' => 'El RUC del cliente debe tener exactamente 11 dígitos.',
-            'client.doc_number.regex' => $typeCode === '01'
+            'client.doc_number.regex' => ($typeCode === '01' && ! $isExport)
                 ? 'El RUC del cliente debe tener 11 dígitos numéricos válidos (comenzar con 10, 15, 17 o 20).'
                 : 'El número de documento del cliente no es válido.',
         ];

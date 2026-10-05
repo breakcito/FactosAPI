@@ -35,7 +35,7 @@ class GreenterDespatchBuilder
                     ->setDistrito($company->district ?: 'LIMA')
                     ->setUrbanizacion('-')
                     ->setDireccion($company->address ?: 'AV. PRINCIPAL 123')
-                    ->setCodLocal('0000')
+                    ->setCodLocal($despatch->establishment_code ?: ($company->establishment_code ?: '0000'))
             );
 
         $greenterClient = (new GreenterClient)

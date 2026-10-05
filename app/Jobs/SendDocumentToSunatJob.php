@@ -47,12 +47,12 @@ class SendDocumentToSunatJob implements ShouldQueue
             if ($result->isSuccess()) {
                 // CDR received from SUNAT
                 $cdrZip = $result->getCdrZip();
-                $cdrPath = $greenterService->saveCdr($this->document, $cdrZip);
+                $cdrPath = $cdrZip ? $greenterService->saveCdr($this->document, $cdrZip) : null;
                 $cdrResponse = $result->getCdrResponse();
 
-                $code = (string) $cdrResponse->getCode();
-                $description = $cdrResponse->getDescription();
-                $notes = $cdrResponse->getNotes();
+                $code = $cdrResponse ? (string) $cdrResponse->getCode() : '0';
+                $description = $cdrResponse?->getDescription() ?? 'Aceptado por SUNAT.';
+                $notes = $cdrResponse?->getNotes() ?? [];
 
                 $this->document->cdr_path = $cdrPath;
                 $this->document->sunat_code = $code;
@@ -81,7 +81,8 @@ class SendDocumentToSunatJob implements ShouldQueue
                 }
             } else {
                 // SUNAT returned an error during connection / transport
-                $this->handleSunatFailure($result->getError()->getMessage());
+                $errorMessage = $result->getError()?->getMessage() ?? 'Error desconocido al comunicar con SUNAT.';
+                $this->handleSunatFailure($errorMessage);
             }
         } catch (Throwable $e) {
             Log::warning("Exception contacting SUNAT for document {$this->document->id}: {$e->getMessage()}");

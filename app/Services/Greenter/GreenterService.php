@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\Despatch;
 use App\Models\Document;
 use App\Services\Greenter\Ws\SunatSoapClient;
+use Greenter\Api;
 use Greenter\Model\Response\BillResult;
 use Greenter\Model\Response\StatusResult;
 use Greenter\Model\Response\SummaryResult;
@@ -140,6 +141,59 @@ class GreenterService
         $result = $sender->send($filename, $signedXml);
 
         return $result;
+    }
+
+    public function getSeeApi(Company $company): Api
+    {
+        $endpoints = $company->is_production
+            ? [
+                'auth' => 'https://api-seguridad.sunat.gob.pe/v1',
+                'cpe' => 'https://api-cpe.sunat.gob.pe/v1',
+            ]
+            : [
+                'auth' => 'https://gre-test.nubefact.com/v1',
+                'cpe' => 'https://gre-test.nubefact.com/v1',
+            ];
+
+        $api = new Api($endpoints);
+
+        $certPem = $this->certificateService->getCertificatePem($company);
+        $api->setCertificate($certPem);
+        $api->setClaveSOL(
+            $company->ruc,
+            $company->sol_user,
+            $company->sol_pass
+        );
+
+        $clientId = $company->client_id ?: 'test-85e5b0ae-255c-4891-a595-0b98c65c9854';
+        $clientSecret = $company->client_secret ?: 'test-Hty/M6QshYvPgItX2P0+Kw==';
+        $api->setApiCredentials($clientId, $clientSecret);
+
+        return $api;
+    }
+
+    /**
+     * Send signed Despatch XML to SUNAT via GRE REST API.
+     */
+    public function sendSignedDespatchXml(Despatch $despatch, string $signedXml): SummaryResult
+    {
+        $api = $this->getSeeApi($despatch->company);
+        $filename = $despatch->getSunatFileName();
+
+        /** @var SummaryResult $result */
+        $result = $api->sendXml($filename, $signedXml);
+
+        return $result;
+    }
+
+    /**
+     * Check status of a ticket issued by SUNAT for Despatch via GRE REST API.
+     */
+    public function checkDespatchTicketStatus(Company $company, string $ticket): StatusResult
+    {
+        $api = $this->getSeeApi($company);
+
+        return $api->getStatus($ticket);
     }
 
     /**

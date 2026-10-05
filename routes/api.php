@@ -15,17 +15,6 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/health', HealthController::class)->name('api.health');
 
-// Fallback legacy auth routes
-Route::prefix('auth')->name('api.auth.')->group(function (): void {
-    Route::post('/register', RegisterController::class)->name('register');
-    Route::post('/login', LoginController::class)->name('login');
-
-    Route::middleware('auth:sanctum')->group(function (): void {
-        Route::get('/me', MeController::class)->name('me');
-        Route::post('/logout', LogoutController::class)->name('logout');
-    });
-});
-
 // API v1 Routes
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     // Auth

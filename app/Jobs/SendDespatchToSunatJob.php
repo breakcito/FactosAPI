@@ -51,29 +51,90 @@ class SendDespatchToSunatJob implements ShouldQueue
         $signedXml = Storage::disk($disk)->get($this->despatch->xml_path);
 
         try {
-            $result = $greenterService->sendSignedXml($this->despatch, $signedXml);
+            // If already has ticket, verify ticket status
+            if ($this->despatch->ticket) {
+                $statusResult = $greenterService->checkDespatchTicketStatus($company, $this->despatch->ticket);
 
-            if ($result->isSuccess()) {
-                $cdrZip = $result->getCdrZip();
-                $cdrPath = null;
-                if ($cdrZip) {
-                    $cdrPath = $greenterService->saveCdr($this->despatch, $cdrZip);
+                if ($statusResult->isSuccess()) {
+                    $cdrZip = $statusResult->getCdrZip();
+                    $cdrPath = $cdrZip ? $greenterService->saveCdr($this->despatch, $cdrZip) : null;
+                    $cdrResponse = $statusResult->getCdrResponse();
+
+                    $this->despatch->update([
+                        'status' => 'accepted',
+                        'sunat_code' => $cdrResponse ? (string) $cdrResponse->getCode() : '0',
+                        'sunat_description' => $cdrResponse?->getDescription() ?? 'Guía aceptada por SUNAT.',
+                        'sunat_notes' => $cdrResponse?->getNotes(),
+                        'cdr_path' => $cdrPath,
+                    ]);
+
+                    SendWebhookJob::dispatch($this->despatch, 'despatch.accepted')->onQueue('webhooks');
+
+                    return;
                 }
 
-                $cdrResponse = $result->getCdrResponse();
-                $notes = $cdrResponse ? $cdrResponse->getNotes() : [];
+                $code = (string) $statusResult->getCode();
+                if ($code === '98' || $code === '098') {
+                    $this->handleRetry('Ticket en proceso en SUNAT.');
 
+                    return;
+                }
+
+                $error = $statusResult->getError();
                 $this->despatch->update([
-                    'status' => 'accepted',
-                    'sunat_code' => $cdrResponse ? $cdrResponse->getCode() : '0',
-                    'sunat_description' => $cdrResponse ? $cdrResponse->getDescription() : 'Guía aceptada por SUNAT.',
-                    'sunat_notes' => $notes ?: null,
-                    'cdr_path' => $cdrPath,
+                    'status' => 'rejected',
+                    'sunat_code' => $code ?: 'UNKNOWN',
+                    'sunat_description' => $error?->getMessage() ?? 'Guía rechazada por SUNAT.',
                 ]);
 
-                SendWebhookJob::dispatch($this->despatch, 'despatch.accepted')->onQueue('webhooks');
+                SendWebhookJob::dispatch($this->despatch, 'despatch.rejected')->onQueue('webhooks');
 
                 return;
+            }
+
+            // Send via modern GRE REST API
+            $result = $greenterService->sendSignedDespatchXml($this->despatch, $signedXml);
+
+            if ($result->isSuccess()) {
+                $ticket = $result->getTicket();
+
+                if ($ticket) {
+                    $this->despatch->ticket = $ticket;
+                    $this->despatch->save();
+
+                    // Immediately query ticket status
+                    $statusResult = $greenterService->checkDespatchTicketStatus($company, $ticket);
+
+                    if ($statusResult->isSuccess()) {
+                        $cdrZip = $statusResult->getCdrZip();
+                        $cdrPath = $cdrZip ? $greenterService->saveCdr($this->despatch, $cdrZip) : null;
+                        $cdrResponse = $statusResult->getCdrResponse();
+
+                        $this->despatch->update([
+                            'status' => 'accepted',
+                            'sunat_code' => $cdrResponse ? (string) $cdrResponse->getCode() : '0',
+                            'sunat_description' => $cdrResponse?->getDescription() ?? 'Guía aceptada por SUNAT.',
+                            'sunat_notes' => $cdrResponse?->getNotes(),
+                            'cdr_path' => $cdrPath,
+                        ]);
+
+                        SendWebhookJob::dispatch($this->despatch, 'despatch.accepted')->onQueue('webhooks');
+
+                        return;
+                    }
+
+                    // Ticket is still processing in SUNAT
+                    $this->despatch->update([
+                        'status' => 'waiting_sunat',
+                        'sunat_code' => (string) $statusResult->getCode() ?: '98',
+                        'sunat_description' => 'Guía enviada a SUNAT. Ticket en procesamiento: '.$ticket,
+                        'next_retry_at' => Carbon::now()->addMinutes(1),
+                    ]);
+
+                    SendWebhookJob::dispatch($this->despatch, 'despatch.waiting')->onQueue('webhooks');
+
+                    return;
+                }
             }
 
             // Error de negocio devuelto por SUNAT (Rechazo tributario)
@@ -90,17 +151,22 @@ class SendDespatchToSunatJob implements ShouldQueue
             SendWebhookJob::dispatch($this->despatch, 'despatch.rejected')->onQueue('webhooks');
 
         } catch (Throwable $e) {
-            $retries = $this->despatch->retry_count + 1;
-            $nextRetryMinutes = min((int) (2 ** $retries), 60);
-
-            $this->despatch->update([
-                'status' => 'waiting_sunat',
-                'retry_count' => $retries,
-                'next_retry_at' => Carbon::now()->addMinutes($nextRetryMinutes),
-                'sunat_description' => 'Error de conexión con SUNAT: '.$e->getMessage(),
-            ]);
-
-            SendWebhookJob::dispatch($this->despatch, 'despatch.waiting')->onQueue('webhooks');
+            $this->handleRetry('Error de conexión con SUNAT: '.$e->getMessage());
         }
+    }
+
+    private function handleRetry(string $errorMessage): void
+    {
+        $retries = $this->despatch->retry_count + 1;
+        $nextRetryMinutes = min((int) (2 ** $retries), 60);
+
+        $this->despatch->update([
+            'status' => 'waiting_sunat',
+            'retry_count' => $retries,
+            'next_retry_at' => Carbon::now()->addMinutes($nextRetryMinutes),
+            'sunat_description' => $errorMessage,
+        ]);
+
+        SendWebhookJob::dispatch($this->despatch, 'despatch.waiting')->onQueue('webhooks');
     }
 }

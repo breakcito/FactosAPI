@@ -130,3 +130,47 @@ test('can register company with RUC starting with 15 or 17', function () {
 
     $this->assertDatabaseHas('companies', ['ruc' => '15600055231']);
 });
+
+test('company registration requires certificate or certificate_path', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/companies', [
+        'ruc' => '20600055231',
+        'business_name' => 'EMPRESA SIN CERTIFICADO S.A.C.',
+        'sol_user' => 'MODDATOS',
+        'sol_pass' => 'moddatos',
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['certificate']);
+});
+
+test('company can be registered and updated with gre api credentials and establishment code', function () {
+    Storage::fake('local');
+    $user = User::factory()->create();
+    $certificate = UploadedFile::fake()->create('certificate.pem', 200, 'text/plain');
+
+    $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/companies', [
+        'ruc' => '20600055232',
+        'business_name' => 'EMPRESA GRE S.A.C.',
+        'sol_user' => 'MODDATOS',
+        'sol_pass' => 'moddatos',
+        'certificate' => $certificate,
+        'certificate_pass' => '123456',
+        'establishment_code' => '0001',
+        'client_id' => 'gre-client-id-123',
+        'client_secret' => 'gre-secret-xyz',
+    ]);
+
+    $response->assertStatus(201);
+    $company = Company::where('ruc', '20600055232')->first();
+    expect($company->establishment_code)->toBe('0001');
+    expect($company->client_id)->toBe('gre-client-id-123');
+    expect($company->client_secret)->toBe('gre-secret-xyz');
+
+    $this->actingAs($user, 'sanctum')->putJson("/api/v1/companies/{$company->id}", [
+        'establishment_code' => '0002',
+    ])->assertStatus(200);
+
+    expect($company->fresh()->establishment_code)->toBe('0002');
+});
