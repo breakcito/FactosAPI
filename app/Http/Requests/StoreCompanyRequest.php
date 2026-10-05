@@ -42,6 +42,13 @@ class StoreCompanyRequest extends FormRequest
             'company_copy_emails.*' => ['email'],
             'send_to_client_email' => ['nullable', 'boolean'],
             'email_template_settings' => ['nullable', 'array'],
+            'mail_host' => ['nullable', 'string', 'max:100'],
+            'mail_port' => ['nullable', 'integer', 'between:1,65535'],
+            'mail_username' => ['nullable', 'string', 'max:255'],
+            'mail_password' => ['nullable', 'string', 'max:255'],
+            'mail_encryption' => ['nullable', 'string', 'in:tls,ssl,none,TLS,SSL'],
+            'mail_from_address' => ['nullable', 'email', 'max:255'],
+            'mail_from_name' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

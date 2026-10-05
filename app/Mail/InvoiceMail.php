@@ -5,6 +5,7 @@ namespace App\Mail;
 use App\Models\Document;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -25,7 +26,16 @@ class InvoiceMail extends Mailable
         $subject = $company->email_template_settings['subject']
             ?? "Comprobante Electrónico {$this->document->series}-{$this->document->correlative} - {$company->business_name}";
 
+        $fromAddress = $company->mail_from_address
+            ?: ($company->mail_username ?: config('mail.from.address'));
+        $fromName = $company->mail_from_name
+            ?: ($company->trademark_name ?: ($company->business_name ?: config('mail.from.name')));
+
+        $from = new Address($fromAddress, $fromName);
+
         return new Envelope(
+            from: $from,
+            replyTo: [$from],
             subject: $subject,
         );
     }

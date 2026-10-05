@@ -168,3 +168,90 @@ test('SendInvoiceEmailJob discards sending cleanly without exceptions when notif
 
     Mail::assertNothingSent();
 });
+
+test('SendInvoiceEmailJob uses dynamic Google SMTP settings and sets custom sender headers', function () {
+    Mail::fake();
+
+    $user = User::factory()->create();
+    $company = Company::factory()->create([
+        'user_id' => $user->id,
+        'business_name' => 'DISTRIBUIDORA LIMA S.A.C.',
+        'trademark_name' => 'DISTRIBUIDORA LIMA',
+        'email_notifications_active' => true,
+        'send_to_client_email' => true,
+        'company_copy_emails' => ['facturacion@distribuidoralima.com'],
+        'mail_host' => 'smtp.gmail.com',
+        'mail_port' => 587,
+        'mail_username' => 'distribuidoralima@gmail.com',
+        'mail_password' => 'abcd efgh ijkl mnop',
+        'mail_encryption' => 'tls',
+        'mail_from_address' => 'distribuidoralima@gmail.com',
+        'mail_from_name' => 'DISTRIBUIDORA LIMA S.A.C.',
+    ]);
+
+    $document = Document::factory()->create([
+        'company_id' => $company->id,
+        'client_email' => 'comprador@cliente.pe',
+        'series' => 'F001',
+        'correlative' => 500,
+        'status' => 'accepted',
+    ]);
+
+    expect($company->hasCustomMailConfig())->toBeTrue();
+    expect($company->mail_password)->toBe('abcd efgh ijkl mnop');
+
+    $job = new SendInvoiceEmailJob($document);
+    $job->handle();
+
+    // Verify dynamic mailer config was created
+    $dynamicMailerConfig = config("mail.mailers.company_{$company->id}");
+    expect($dynamicMailerConfig)->not()->toBeNull();
+    expect($dynamicMailerConfig['host'])->toBe('smtp.gmail.com');
+    expect($dynamicMailerConfig['port'])->toBe(587);
+    expect($dynamicMailerConfig['username'])->toBe('distribuidoralima@gmail.com');
+    expect($dynamicMailerConfig['password'])->toBe('abcd efgh ijkl mnop');
+    expect($dynamicMailerConfig['encryption'])->toBe('tls');
+
+    // Verify Mail was sent to client with CC to company
+    Mail::assertSent(InvoiceMail::class, function ($mail) {
+        $envelope = $mail->envelope();
+
+        return $mail->hasTo('comprador@cliente.pe')
+            && $mail->hasCc('facturacion@distribuidoralima.com')
+            && $envelope->from->address === 'distribuidoralima@gmail.com'
+            && $envelope->from->name === 'DISTRIBUIDORA LIMA S.A.C.'
+            && $envelope->replyTo[0]->address === 'distribuidoralima@gmail.com';
+    });
+});
+
+test('user can configure Google SMTP credentials via API and password is encrypted and hidden', function () {
+    $user = User::factory()->create();
+    $company = Company::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->actingAs($user, 'sanctum')->putJson("/api/v1/companies/{$company->id}", [
+        'mail_host' => 'smtp.gmail.com',
+        'mail_port' => 587,
+        'mail_username' => 'miempresa@gmail.com',
+        'mail_password' => 'secret-app-password',
+        'mail_encryption' => 'tls',
+        'mail_from_address' => 'miempresa@gmail.com',
+        'mail_from_name' => 'MI EMPRESA OFICIAL',
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'status' => 'success',
+            'data' => [
+                'mail_host' => 'smtp.gmail.com',
+                'mail_port' => 587,
+                'mail_username' => 'miempresa@gmail.com',
+                'mail_from_address' => 'miempresa@gmail.com',
+                'mail_from_name' => 'MI EMPRESA OFICIAL',
+            ],
+        ])
+        ->assertJsonMissing(['mail_password']);
+
+    $company->refresh();
+    expect($company->mail_password)->toBe('secret-app-password');
+    expect($company->hasCustomMailConfig())->toBeTrue();
+});

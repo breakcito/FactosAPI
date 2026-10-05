@@ -3,7 +3,9 @@
 namespace App\Jobs;
 
 use App\Mail\InvoiceMail;
+use App\Models\Company;
 use App\Models\Document;
+use Illuminate\Contracts\Mail\Mailer;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -58,7 +60,9 @@ class SendInvoiceEmailJob implements ShouldQueue
         }
 
         try {
-            $pendingMail = Mail::to($toEmail);
+            $mailer = $this->resolveMailer($company);
+
+            $pendingMail = $mailer->to($toEmail);
             if (! empty($ccEmails)) {
                 $pendingMail->cc($ccEmails);
             }
@@ -67,5 +71,32 @@ class SendInvoiceEmailJob implements ShouldQueue
         } catch (Throwable $e) {
             Log::warning("Failed sending invoice email for document {$this->document->id}: {$e->getMessage()}");
         }
+    }
+
+    private function resolveMailer(Company $company): Mailer
+    {
+        if ($company->hasCustomMailConfig()) {
+            $mailerKey = "company_{$company->id}";
+            $encryption = strtolower((string) ($company->mail_encryption ?: 'tls'));
+            if ($encryption === 'none' || $encryption === 'null' || $encryption === '') {
+                $encryption = null;
+            }
+
+            config([
+                "mail.mailers.{$mailerKey}" => [
+                    'transport' => 'smtp',
+                    'host' => $company->mail_host ?: 'smtp.gmail.com',
+                    'port' => (int) ($company->mail_port ?: 587),
+                    'encryption' => $encryption,
+                    'username' => $company->mail_username,
+                    'password' => $company->mail_password,
+                    'timeout' => 15,
+                ],
+            ]);
+
+            return Mail::mailer($mailerKey);
+        }
+
+        return Mail::mailer();
     }
 }

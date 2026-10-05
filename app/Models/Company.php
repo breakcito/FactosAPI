@@ -69,6 +69,13 @@ class Company extends Model
         'company_copy_emails',
         'send_to_client_email',
         'email_template_settings',
+        'mail_host',
+        'mail_port',
+        'mail_username',
+        'mail_password',
+        'mail_encryption',
+        'mail_from_address',
+        'mail_from_name',
     ];
 
     /**
@@ -79,6 +86,7 @@ class Company extends Model
         'client_secret',
         'certificate_pass',
         'webhook_secret',
+        'mail_password',
     ];
 
     /**
@@ -90,6 +98,8 @@ class Company extends Model
             'sol_pass' => 'encrypted',
             'client_secret' => 'encrypted',
             'certificate_pass' => 'encrypted',
+            'mail_password' => 'encrypted',
+            'mail_port' => 'integer',
             'is_production' => 'boolean',
             'is_active' => 'boolean',
             'email_notifications_active' => 'boolean',
@@ -97,6 +107,11 @@ class Company extends Model
             'company_copy_emails' => 'array',
             'email_template_settings' => 'array',
         ];
+    }
+
+    public function hasCustomMailConfig(): bool
+    {
+        return ! empty($this->mail_username) && ! empty($this->mail_password);
     }
 
     /**
