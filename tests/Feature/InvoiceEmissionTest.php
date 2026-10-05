@@ -123,3 +123,85 @@ test('invoice emission with duplicated correlative returns 422 validation error'
     $response2->assertStatus(422)
         ->assertJsonValidationErrors(['correlative']);
 });
+
+test('invoice emission to client with DNI returns 422 validation error', function () {
+    $user = User::factory()->create();
+    $company = Company::factory()->create(['user_id' => $user->id]);
+
+    $payload = [
+        'company_id' => $company->id,
+        'series' => 'F001',
+        'correlative' => 101,
+        'issue_date' => '2026-09-25',
+        'issue_time' => '10:00:00',
+        'currency' => 'PEN',
+        'client' => [
+            'doc_type' => '1', // DNI not allowed for Factura (01)
+            'doc_number' => '44556677',
+            'name' => 'CLIENTE PERSONA',
+        ],
+        'items' => [
+            [
+                'description' => 'ITEM 1',
+                'unit_code' => 'NIU',
+                'quantity' => 1,
+                'unit_value' => 100,
+                'unit_price' => 118,
+                'igv_type' => '10',
+                'igv_amount' => 18,
+                'total' => 118,
+            ],
+        ],
+        'totals' => [
+            'taxable' => 100,
+            'igv' => 18,
+            'total' => 118,
+        ],
+    ];
+
+    $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/invoices', $payload);
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['client.doc_type']);
+});
+
+test('invoice emission with another user company_id returns 422 validation error', function () {
+    $userA = User::factory()->create();
+    $companyA = Company::factory()->create(['user_id' => $userA->id]);
+
+    $userB = User::factory()->create();
+
+    $payload = [
+        'company_id' => $companyA->id,
+        'series' => 'F001',
+        'correlative' => 102,
+        'issue_date' => '2026-09-25',
+        'issue_time' => '10:00:00',
+        'currency' => 'PEN',
+        'client' => [
+            'doc_type' => '6',
+            'doc_number' => '20600055231',
+            'name' => 'CLIENTE TEST',
+        ],
+        'items' => [
+            [
+                'description' => 'ITEM 1',
+                'unit_code' => 'NIU',
+                'quantity' => 1,
+                'unit_value' => 100,
+                'unit_price' => 118,
+                'igv_type' => '10',
+                'igv_amount' => 18,
+                'total' => 118,
+            ],
+        ],
+        'totals' => [
+            'taxable' => 100,
+            'igv' => 18,
+            'total' => 118,
+        ],
+    ];
+
+    $response = $this->actingAs($userB, 'sanctum')->postJson('/api/v1/invoices', $payload);
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['company_id']);
+});

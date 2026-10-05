@@ -1,10 +1,12 @@
 <?php
 
 use App\Jobs\ProcessDocumentJob;
+use App\Jobs\SendDespatchToSunatJob;
 use App\Jobs\SendDocumentToSunatJob;
 use App\Jobs\SendInvoiceEmailJob;
 use App\Jobs\SendWebhookJob;
 use App\Models\Company;
+use App\Models\Despatch;
 use App\Models\Document;
 use App\Models\DocumentItem;
 use App\Models\User;
@@ -167,8 +169,8 @@ test('SendDocumentToSunatJob updates status to waiting_sunat and backoff on conn
     });
 });
 
-test('RetryWaitingDocumentsCommand re-enqueues eligible waiting documents', function () {
-    Queue::fake([SendDocumentToSunatJob::class]);
+test('RetryWaitingDocumentsCommand re-enqueues eligible waiting documents and despatches', function () {
+    Queue::fake([SendDocumentToSunatJob::class, SendDespatchToSunatJob::class]);
 
     $user = User::factory()->create();
     $company = Company::factory()->create(['user_id' => $user->id]);
@@ -180,9 +182,18 @@ test('RetryWaitingDocumentsCommand re-enqueues eligible waiting documents', func
         'retry_count' => 1,
     ]);
 
+    $despatch = Despatch::factory()->create([
+        'company_id' => $company->id,
+        'status' => 'waiting_sunat',
+        'next_retry_at' => now()->subMinute(),
+        'retry_count' => 1,
+    ]);
+
     $this->artisan('documents:retry-waiting')
         ->expectsOutput('Re-enqueued 1 waiting documents for SUNAT processing.')
+        ->expectsOutput('Re-enqueued 1 waiting despatches for SUNAT processing.')
         ->assertExitCode(0);
 
     Queue::assertPushedOn('sunat', SendDocumentToSunatJob::class);
+    Queue::assertPushedOn('sunat', SendDespatchToSunatJob::class);
 });

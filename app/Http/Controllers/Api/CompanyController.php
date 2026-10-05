@@ -48,8 +48,10 @@ class CompanyController extends Controller
         ], 201);
     }
 
-    public function show(Company $company): JsonResponse
+    public function show(Request $request, Company $company): JsonResponse
     {
+        abort_if($company->user_id !== $request->user()->id, 403, 'No tiene autorización para acceder a esta empresa.');
+
         return response()->json([
             'status' => 'success',
             'data' => $company,
@@ -58,6 +60,8 @@ class CompanyController extends Controller
 
     public function update(UpdateCompanyRequest $request, Company $company): JsonResponse
     {
+        abort_if($company->user_id !== $request->user()->id, 403, 'No tiene autorización para modificar esta empresa.');
+
         $data = $request->validated();
 
         if ($request->hasFile('certificate')) {
@@ -79,8 +83,10 @@ class CompanyController extends Controller
         ]);
     }
 
-    public function webhooks(Company $company): JsonResponse
+    public function webhooks(Request $request, Company $company): JsonResponse
     {
+        abort_if($company->user_id !== $request->user()->id, 403, 'No tiene autorización para acceder a los webhooks de esta empresa.');
+
         $deliveries = $company->webhookDeliveries()
             ->latest()
             ->paginate(25);

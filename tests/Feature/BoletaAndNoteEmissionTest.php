@@ -251,6 +251,63 @@ test('can emit nota de debito modifying an invoice', function () {
         ->assertJsonPath('data.type_code', '08');
 });
 
+test('credit note alias automatically infers type_code 07 when omitted', function () {
+    Queue::fake();
+
+    $payload = [
+        'company_id' => $this->company->id,
+        // Notice: type_code is intentionally omitted
+        'series' => 'FC01',
+        'correlative' => 99,
+        'issue_date' => now()->toDateString(),
+        'issue_time' => '12:00:00',
+        'currency' => 'PEN',
+        'client' => [
+            'doc_type' => '6',
+            'doc_number' => '20100070970',
+            'name' => 'SUPERMERCADOS PERUANOS S.A.',
+        ],
+        'note' => [
+            'affected_type' => '01',
+            'affected_series' => 'F001',
+            'affected_correlative' => 100,
+            'code' => '01',
+            'reason' => 'Anulación total',
+        ],
+        'items' => [
+            [
+                'description' => 'Servicio',
+                'unit_code' => 'ZZ',
+                'quantity' => 1,
+                'unit_value' => 100.00,
+                'unit_price' => 118.00,
+                'igv_type' => '10',
+                'igv_amount' => 18.00,
+                'total' => 118.00,
+            ],
+        ],
+        'totals' => [
+            'taxable' => 100.00,
+            'igv' => 18.00,
+            'total' => 118.00,
+        ],
+    ];
+
+    $response = $this->actingAs($this->user)
+        ->postJson('/api/v1/credit-notes', $payload);
+
+    $response->assertStatus(202)
+        ->assertJsonPath('status', 'success')
+        ->assertJsonPath('data.type_code', '07');
+
+    $this->assertDatabaseHas('documents', [
+        'company_id' => $this->company->id,
+        'type_code' => '07',
+        'series' => 'FC01',
+        'correlative' => 99,
+    ]);
+});
+
 test('process document job generates signed xml and pdf for boleta and credit note', function () {
     $document = Document::create([
         'company_id' => $this->company->id,

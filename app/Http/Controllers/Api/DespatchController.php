@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDespatchRequest;
 use App\Jobs\ProcessDespatchJob;
+use App\Jobs\SendWebhookJob;
 use App\Models\Despatch;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,11 @@ class DespatchController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Despatch::query()->with('company');
+        $userCompanyIds = $request->user()->companies()->pluck('id');
+
+        $query = Despatch::query()
+            ->whereIn('company_id', $userCompanyIds)
+            ->with('company');
 
         if ($request->filled('company_id')) {
             $query->where('company_id', $request->query('company_id'));
@@ -126,8 +131,10 @@ class DespatchController extends Controller
         ], 202);
     }
 
-    public function show(Despatch $despatch): JsonResponse
+    public function show(Request $request, Despatch $despatch): JsonResponse
     {
+        abort_if($despatch->company->user_id !== $request->user()->id, 403, 'No tiene autorización para consultar esta guía de remisión.');
+
         $despatch->loadMissing(['company', 'items']);
         $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
 
@@ -192,6 +199,8 @@ class DespatchController extends Controller
 
     public function void(Request $request, Despatch $despatch): JsonResponse
     {
+        abort_if($despatch->company->user_id !== $request->user()->id, 403, 'No tiene autorización para anular esta guía de remisión.');
+
         $request->validate([
             'reason' => ['required', 'string', 'min:3', 'max:250'],
         ]);
@@ -214,8 +223,11 @@ class DespatchController extends Controller
         $despatch->update([
             'status' => 'voided',
             'void_reason' => $reason,
+            'void_sunat_description' => 'Guía dejada sin efecto administrativo antes del inicio del traslado conforme a normativa SUNAT.',
             'voided_at' => now(),
         ]);
+
+        SendWebhookJob::dispatch($despatch, 'despatch.voided')->onQueue('webhooks');
 
         return response()->json([
             'status' => 'success',

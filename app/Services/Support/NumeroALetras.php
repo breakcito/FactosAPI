@@ -31,6 +31,7 @@ class NumeroALetras
 
         $currencyName = match (strtoupper($currency)) {
             'USD' => 'DÓLARES AMERICANOS',
+            'EUR' => 'EUROS',
             default => 'SOLES',
         };
 

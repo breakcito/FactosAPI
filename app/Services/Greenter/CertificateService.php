@@ -13,19 +13,33 @@ class CertificateService
      */
     public function getCertificatePem(Company $company): string
     {
-        $path = $this->resolvePath($company->certificate_path);
+        $disk = config('factos.storage_disk', 'local');
+        $path = $company->certificate_path;
 
-        if ($path && file_exists($path)) {
-            $content = file_get_contents($path);
-            if ($content === false) {
-                throw new RuntimeException("No se pudo leer el archivo de certificado en: {$path}");
+        if ($path) {
+            $content = null;
+            $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+
+            if (Storage::disk($disk)->exists($path)) {
+                $content = Storage::disk($disk)->get($path);
+            } elseif ($disk !== 'local' && Storage::disk('local')->exists($path)) {
+                $content = Storage::disk('local')->get($path);
+            } elseif (file_exists($path)) {
+                $content = file_get_contents($path);
+            } else {
+                $appStoragePath = storage_path('app/'.ltrim($path, '/'));
+                if (file_exists($appStoragePath)) {
+                    $content = file_get_contents($appStoragePath);
+                }
             }
 
-            if (str_ends_with(strtolower($path), '.pfx') || str_ends_with(strtolower($path), '.p12')) {
-                return $this->convertPfxToPem($content, $company->certificate_pass);
-            }
+            if ($content !== false && $content !== null) {
+                if (in_array($extension, ['pfx', 'p12'], true)) {
+                    return $this->convertPfxToPem($content, (string) $company->certificate_pass);
+                }
 
-            return $content;
+                return $content;
+            }
         }
 
         // Fallback for tests or local dev when custom cert is not yet uploaded
@@ -51,27 +65,5 @@ class CertificateService
         }
 
         return ($certs['cert'] ?? '')."\n".($certs['pkey'] ?? '');
-    }
-
-    private function resolvePath(?string $path): ?string
-    {
-        if (empty($path)) {
-            return null;
-        }
-
-        if (file_exists($path)) {
-            return $path;
-        }
-
-        if (Storage::disk('local')->exists($path)) {
-            return Storage::disk('local')->path($path);
-        }
-
-        $appStoragePath = storage_path('app/'.ltrim($path, '/'));
-        if (file_exists($appStoragePath)) {
-            return $appStoragePath;
-        }
-
-        return null;
     }
 }

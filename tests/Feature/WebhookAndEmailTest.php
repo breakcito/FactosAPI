@@ -4,6 +4,7 @@ use App\Jobs\SendInvoiceEmailJob;
 use App\Jobs\SendWebhookJob;
 use App\Mail\InvoiceMail;
 use App\Models\Company;
+use App\Models\Despatch;
 use App\Models\Document;
 use App\Models\User;
 use App\Models\WebhookDelivery;
@@ -80,6 +81,46 @@ test('user can retry failed webhook delivery', function () {
         ]);
 
     Queue::assertPushedOn('webhooks', SendWebhookJob::class);
+});
+
+test('user can retry failed webhook delivery for despatch without type error', function () {
+    Queue::fake([SendWebhookJob::class]);
+
+    $user = User::factory()->create();
+    $company = Company::factory()->create(['user_id' => $user->id]);
+    $despatch = Despatch::factory()->create(['company_id' => $company->id]);
+    $webhook = WebhookDelivery::factory()->create([
+        'company_id' => $company->id,
+        'document_id' => null,
+        'despatch_id' => $despatch->id,
+        'status' => 'failed',
+    ]);
+
+    $response = $this->actingAs($user, 'sanctum')->postJson("/api/v1/webhooks/{$webhook->id}/retry");
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'status' => 'success',
+            'message' => 'Notificación de webhook re-encolada para entrega.',
+        ]);
+
+    Queue::assertPushedOn('webhooks', SendWebhookJob::class, function ($job) use ($despatch) {
+        return $job->document->id === $despatch->id;
+    });
+});
+
+test('user cannot retry webhook from another tenant', function () {
+    $userA = User::factory()->create();
+    $companyA = Company::factory()->create(['user_id' => $userA->id]);
+    $webhookA = WebhookDelivery::factory()->create([
+        'company_id' => $companyA->id,
+        'status' => 'failed',
+    ]);
+
+    $userB = User::factory()->create();
+
+    $response = $this->actingAs($userB, 'sanctum')->postJson("/api/v1/webhooks/{$webhookA->id}/retry");
+    $response->assertStatus(403);
 });
 
 test('SendInvoiceEmailJob sends email when notifications are active', function () {

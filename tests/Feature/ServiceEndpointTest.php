@@ -96,3 +96,37 @@ test('services endpoint resolves exchange rate', function () {
             ],
         ]);
 });
+
+test('services endpoint accepts RUC starting with 15 and 17', function () {
+    $user = User::factory()->create();
+
+    Http::fake([
+        'https://dniruc.apisperu.com/api/v1/ruc/15123456789*' => Http::response([
+            'ruc' => '15123456789',
+            'razonSocial' => 'EXTRANJERO DOMICILIADO 15',
+            'estado' => 'ACTIVO',
+            'condicion' => 'HABIDO',
+            'direccion' => 'AV. MIRAFLORES 123',
+            'ubigeo' => '150122',
+        ], 200),
+        'https://dniruc.apisperu.com/api/v1/ruc/17123456789*' => Http::response([
+            'ruc' => '17123456789',
+            'razonSocial' => 'EXTRANJERO DOMICILIADO 17',
+            'estado' => 'ACTIVO',
+            'condicion' => 'HABIDO',
+            'direccion' => 'AV. SAN ISIDRO 456',
+            'ubigeo' => '150131',
+        ], 200),
+    ]);
+
+    $this->actingAs($user, 'sanctum')->getJson('/api/v1/services/ruc/15123456789')
+        ->assertStatus(200)
+        ->assertJsonPath('data.ruc', '15123456789');
+
+    $this->actingAs($user, 'sanctum')->getJson('/api/v1/services/ruc/17123456789')
+        ->assertStatus(200)
+        ->assertJsonPath('data.ruc', '17123456789');
+
+    $this->actingAs($user, 'sanctum')->getJson('/api/v1/services/ruc/99123456789')
+        ->assertStatus(422);
+});

@@ -40,10 +40,10 @@ class ServiceController extends Controller
 
     public function ruc(string $number): JsonResponse
     {
-        if (! preg_match('/^(10|20)\d{9}$/', $number)) {
+        if (! preg_match('/^(10|15|17|20)\d{9}$/', $number)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'El número de RUC debe tener 11 dígitos y comenzar con 10 o 20.',
+                'message' => 'El número de RUC debe tener 11 dígitos y comenzar con 10, 15, 17 o 20.',
             ], 422);
         }
 

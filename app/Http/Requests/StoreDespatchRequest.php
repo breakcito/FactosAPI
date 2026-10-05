@@ -18,7 +18,11 @@ class StoreDespatchRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'company_id' => ['required', 'uuid', 'exists:companies,id'],
+            'company_id' => [
+                'required',
+                'uuid',
+                Rule::exists('companies', 'id')->where('user_id', $this->user()?->id),
+            ],
             'type_code' => ['nullable', 'string', 'in:09,31'],
             'external_id' => ['nullable', 'string', 'max:100'],
             'series' => ['required', 'string', 'size:4', 'regex:/^[TV][A-Z0-9]{3}$/i'],
@@ -98,6 +102,7 @@ class StoreDespatchRequest extends FormRequest
     {
         return [
             'company_id.required' => 'El identificador de la empresa emisora es obligatorio.',
+            'company_id.exists' => 'La empresa emisora especificada no existe o no pertenece a su usuario.',
             'series.regex' => 'La serie debe comenzar con T o V y tener 4 caracteres alfanuméricos.',
             'correlative.unique' => 'Ya existe una guía emitida con esta serie y correlativo para esta empresa.',
             'carrier.required_if' => 'Los datos de la empresa de transporte son obligatorios para transporte público (01).',

@@ -12,6 +12,13 @@ class StoreInvoiceRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'type_code' => $this->determineTypeCode(),
+        ]);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -20,7 +27,11 @@ class StoreInvoiceRequest extends FormRequest
         $typeCode = $this->determineTypeCode();
 
         return [
-            'company_id' => ['required', 'uuid', 'exists:companies,id'],
+            'company_id' => [
+                'required',
+                'uuid',
+                Rule::exists('companies', 'id')->where('user_id', $this->user()?->id),
+            ],
             'type_code' => ['nullable', 'string', 'in:01,03,07,08'],
             'external_id' => ['nullable', 'string', 'max:100'],
             'series' => ['required', 'string', 'size:4', 'regex:/^[FB][A-Z0-9]{3}$/i'],
@@ -69,7 +80,7 @@ class StoreInvoiceRequest extends FormRequest
             'related_documents.*.number' => ['required_with:related_documents', 'string'],
 
             // Datos de Nota (si es 07 u 08)
-            'note' => ['nullable', 'array', 'required_if:type_code,07,08'],
+            'note' => ['nullable', 'array', Rule::requiredIf(in_array($typeCode, ['07', '08']))],
             'note.affected_type' => ['required_with:note', 'string', 'in:01,03'],
             'note.affected_series' => ['required_with:note', 'string', 'size:4'],
             'note.affected_correlative' => ['required_with:note', 'integer', 'min:1'],
@@ -78,8 +89,17 @@ class StoreInvoiceRequest extends FormRequest
 
             // Cliente
             'client' => ['required', 'array'],
-            'client.doc_type' => ['required', 'string', 'in:0,1,4,6,7'],
-            'client.doc_number' => ['required', 'string', 'max:15'],
+            'client.doc_type' => [
+                'required',
+                'string',
+                $typeCode === '01' ? 'in:6' : 'in:0,1,4,6,7',
+            ],
+            'client.doc_number' => [
+                'required',
+                'string',
+                $typeCode === '01' ? 'size:11' : 'max:15',
+                $typeCode === '01' ? 'regex:/^(10|15|17|20)\d{9}$/' : 'regex:/^[A-Z0-9\-]+$/i',
+            ],
             'client.name' => ['required', 'string', 'max:255'],
             'client.address' => ['nullable', 'string', 'max:255'],
             'client.email' => ['nullable', 'email', 'max:255'],
@@ -114,6 +134,33 @@ class StoreInvoiceRequest extends FormRequest
             return (string) $this->input('type_code');
         }
 
+        $routeName = (string) $this->route()?->getName();
+        if (str_contains($routeName, 'credit-notes')) {
+            return '07';
+        }
+        if (str_contains($routeName, 'debit-notes')) {
+            return '08';
+        }
+        if (str_contains($routeName, 'boletas')) {
+            return '03';
+        }
+        if (str_contains($routeName, 'invoices')) {
+            return '01';
+        }
+
+        if ($this->is('*/credit-notes*')) {
+            return '07';
+        }
+        if ($this->is('*/debit-notes*')) {
+            return '08';
+        }
+        if ($this->is('*/boletas*')) {
+            return '03';
+        }
+        if ($this->is('*/invoices*')) {
+            return '01';
+        }
+
         $series = strtoupper((string) $this->input('series', ''));
         if (str_starts_with($series, 'B')) {
             return '03'; // Boleta
@@ -127,15 +174,24 @@ class StoreInvoiceRequest extends FormRequest
      */
     public function messages(): array
     {
+        $typeCode = $this->determineTypeCode();
+
         return [
             'company_id.required' => 'El identificador de la empresa emisora es obligatorio.',
-            'company_id.exists' => 'La empresa emisora especificada no existe.',
+            'company_id.exists' => 'La empresa emisora especificada no existe o no pertenece a su usuario.',
             'series.regex' => 'La serie debe comenzar con F o B y tener 4 caracteres alfanuméricos.',
             'correlative.unique' => 'Ya existe un comprobante emitido con esta misma serie y correlativo para esta empresa.',
             'items.min' => 'El comprobante debe contener al menos un ítem.',
             'totals.total.required' => 'El importe total del comprobante es obligatorio.',
             'installments.required_if' => 'Las cuotas son requeridas cuando la forma de pago es al crédito.',
-            'note.required_if' => 'El objeto note es obligatorio para Notas de Crédito y Débito.',
+            'note.required' => 'El objeto note es obligatorio para Notas de Crédito y Débito.',
+            'client.doc_type.in' => $typeCode === '01'
+                ? 'Para Facturas (01) el tipo de documento del cliente debe ser RUC (6).'
+                : 'El tipo de documento del cliente no es válido.',
+            'client.doc_number.size' => 'El RUC del cliente debe tener exactamente 11 dígitos.',
+            'client.doc_number.regex' => $typeCode === '01'
+                ? 'El RUC del cliente debe tener 11 dígitos numéricos válidos (comenzar con 10, 15, 17 o 20).'
+                : 'El número de documento del cliente no es válido.',
         ];
     }
 }

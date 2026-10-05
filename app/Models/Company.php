@@ -69,6 +69,15 @@ class Company extends Model
     ];
 
     /**
+     * @var list<string>
+     */
+    protected $hidden = [
+        'sol_pass',
+        'certificate_pass',
+        'webhook_secret',
+    ];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

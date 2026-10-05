@@ -16,7 +16,11 @@ class DocumentController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Document::query()->with('company');
+        $userCompanyIds = $request->user()->companies()->pluck('id');
+
+        $query = Document::query()
+            ->whereIn('company_id', $userCompanyIds)
+            ->with('company');
 
         if ($request->filled('company_id')) {
             $query->where('company_id', $request->query('company_id'));
@@ -54,8 +58,10 @@ class DocumentController extends Controller
         ]);
     }
 
-    public function show(Document $document): JsonResponse
+    public function show(Request $request, Document $document): JsonResponse
     {
+        abort_if($document->company->user_id !== $request->user()->id, 403, 'No tiene autorización para consultar este comprobante.');
+
         $document->loadMissing(['company', 'items']);
         $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
 
@@ -118,7 +124,9 @@ class DocumentController extends Controller
         $reason = $validated['reason'];
 
         if (! $document) {
-            $document = Document::where('company_id', $validated['company_id'])
+            $userCompanyIds = $request->user()->companies()->pluck('id');
+            $document = Document::whereIn('company_id', $userCompanyIds)
+                ->where('company_id', $validated['company_id'])
                 ->where('type_code', $validated['type_code'])
                 ->where('series', strtoupper($validated['series']))
                 ->where('correlative', $validated['correlative'])
@@ -127,9 +135,11 @@ class DocumentController extends Controller
             if (! $document) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'No se encontró el comprobante que se desea anular.',
+                    'message' => 'No se encontró el comprobante que se desea anular o no pertenece a sus empresas.',
                 ], 404);
             }
+        } else {
+            abort_if($document->company->user_id !== $request->user()->id, 403, 'No tiene autorización para anular este comprobante.');
         }
 
         if ($document->status === 'voided') {

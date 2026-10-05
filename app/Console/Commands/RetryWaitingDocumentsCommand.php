@@ -2,7 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\SendDespatchToSunatJob;
 use App\Jobs\SendDocumentToSunatJob;
+use App\Models\Despatch;
 use App\Models\Document;
 use Illuminate\Console\Command;
 
@@ -20,7 +22,7 @@ class RetryWaitingDocumentsCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Sweep and retry pending documents in waiting_sunat status';
+    protected $description = 'Sweep and retry pending documents and despatches in waiting_sunat status';
 
     /**
      * Execute the console command.
@@ -39,7 +41,17 @@ class RetryWaitingDocumentsCommand extends Command
             ->limit($limit)
             ->get();
 
-        if ($documents->isEmpty()) {
+        $despatches = Despatch::query()
+            ->where('status', 'waiting_sunat')
+            ->where(function ($query): void {
+                $query->whereNull('next_retry_at')
+                    ->orWhere('next_retry_at', '<=', now());
+            })
+            ->where('retry_count', '<', 10)
+            ->limit($limit)
+            ->get();
+
+        if ($documents->isEmpty() && $despatches->isEmpty()) {
             $this->info('No waiting documents to retry.');
 
             return self::SUCCESS;
@@ -51,7 +63,18 @@ class RetryWaitingDocumentsCommand extends Command
             $count++;
         }
 
-        $this->info("Re-enqueued {$count} waiting documents for SUNAT processing.");
+        $despatchCount = 0;
+        foreach ($despatches as $despatch) {
+            SendDespatchToSunatJob::dispatch($despatch)->onQueue('sunat');
+            $despatchCount++;
+        }
+
+        if ($count > 0) {
+            $this->info("Re-enqueued {$count} waiting documents for SUNAT processing.");
+        }
+        if ($despatchCount > 0) {
+            $this->info("Re-enqueued {$despatchCount} waiting despatches for SUNAT processing.");
+        }
 
         return self::SUCCESS;
     }

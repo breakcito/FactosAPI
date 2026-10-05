@@ -83,3 +83,46 @@ test('document xml, cdr and pdf can be downloaded via link endpoints', function 
         ->assertHeader('Content-Type', 'application/pdf')
         ->assertSee('%PDF-1.4 Test PDF Content', false);
 });
+
+test('user cannot list, view or void documents from another tenant', function () {
+    $userA = User::factory()->create();
+    $companyA = Company::factory()->create(['user_id' => $userA->id]);
+    $docA = Document::factory()->create([
+        'company_id' => $companyA->id,
+        'status' => 'accepted',
+    ]);
+
+    $userB = User::factory()->create();
+    $companyB = Company::factory()->create(['user_id' => $userB->id]);
+    $docB = Document::factory()->create([
+        'company_id' => $companyB->id,
+        'status' => 'accepted',
+    ]);
+
+    // User A only sees docA, not docB
+    $indexResponse = $this->actingAs($userA, 'sanctum')->getJson('/api/v1/documents');
+    $indexResponse->assertStatus(200);
+    $data = $indexResponse->json('data.data');
+    expect(count($data))->toBe(1);
+    expect($data[0]['id'])->toBe($docA->id);
+
+    // User A cannot show docB
+    $showResponse = $this->actingAs($userA, 'sanctum')->getJson("/api/v1/documents/{$docB->id}");
+    $showResponse->assertStatus(403);
+
+    // User A cannot void docB via uuid endpoint
+    $voidResponse = $this->actingAs($userA, 'sanctum')->postJson("/api/v1/documents/{$docB->id}/void", [
+        'reason' => 'Anulacion no autorizada',
+    ]);
+    $voidResponse->assertStatus(403);
+
+    // User A cannot void docB via general endpoint
+    $voidGeneralResponse = $this->actingAs($userA, 'sanctum')->postJson('/api/v1/documents/void', [
+        'company_id' => $companyB->id,
+        'type_code' => $docB->type_code,
+        'series' => $docB->series,
+        'correlative' => $docB->correlative,
+        'reason' => 'Anulacion no autorizada',
+    ]);
+    $voidGeneralResponse->assertStatus(404);
+});

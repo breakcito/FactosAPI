@@ -208,4 +208,60 @@ test('can query and void despatch guide', function () {
     $despatch->refresh();
     expect($despatch->status)->toBe('voided');
     expect($despatch->void_reason)->toBe('Cancelación del traslado');
+    expect($despatch->void_sunat_description)->not->toBeNull();
+});
+
+test('user cannot list, view or void despatches from another tenant', function () {
+    $userA = User::factory()->create();
+    $companyA = Company::factory()->create(['user_id' => $userA->id]);
+    $despatchA = Despatch::factory()->create([
+        'company_id' => $companyA->id,
+        'status' => 'accepted',
+    ]);
+
+    $userB = User::factory()->create();
+    $companyB = Company::factory()->create(['user_id' => $userB->id]);
+    $despatchB = Despatch::factory()->create([
+        'company_id' => $companyB->id,
+        'status' => 'accepted',
+    ]);
+
+    // User A cannot emit despatch with companyB
+    $emitResponse = $this->actingAs($userA, 'sanctum')->postJson('/api/v1/despatches', [
+        'company_id' => $companyB->id,
+        'series' => 'T001',
+        'correlative' => 99,
+        'issue_date' => now()->toDateString(),
+        'issue_time' => '10:00:00',
+        'transfer_date' => now()->toDateString(),
+        'transport_mode' => '01',
+        'transfer_reason' => '01',
+        'total_weight' => 10,
+        'weight_unit' => 'KGM',
+        'packages_count' => 1,
+        'recipient' => ['doc_type' => '6', 'doc_number' => '20100070970', 'name' => 'CLIENTE'],
+        'origin' => ['ubigeo' => '150101', 'address' => 'Lima'],
+        'destination' => ['ubigeo' => '150101', 'address' => 'Lima'],
+        'carrier' => ['doc_number' => '20100070970', 'name' => 'TRANSPORTES'],
+        'items' => [['description' => 'Item 1', 'quantity' => 1]],
+    ]);
+    $emitResponse->assertStatus(422)
+        ->assertJsonValidationErrors(['company_id']);
+
+    // User A only sees despatchA in index
+    $indexResponse = $this->actingAs($userA, 'sanctum')->getJson('/api/v1/despatches');
+    $indexResponse->assertStatus(200);
+    $data = $indexResponse->json('data.data');
+    expect(count($data))->toBe(1);
+    expect($data[0]['id'])->toBe($despatchA->id);
+
+    // User A cannot view despatchB
+    $showResponse = $this->actingAs($userA, 'sanctum')->getJson("/api/v1/despatches/{$despatchB->id}");
+    $showResponse->assertStatus(403);
+
+    // User A cannot void despatchB
+    $voidResponse = $this->actingAs($userA, 'sanctum')->postJson("/api/v1/despatches/{$despatchB->id}/void", [
+        'reason' => 'Anulación no permitida',
+    ]);
+    $voidResponse->assertStatus(403);
 });
