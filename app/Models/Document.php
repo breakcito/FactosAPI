@@ -65,10 +65,12 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, DocumentItem> $items
  * @property-read Collection<int, WebhookDelivery> $webhookDeliveries
  */
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 class Document extends Model
 {
     /** @use HasFactory<DocumentFactory> */
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $fillable = [
         'company_id',

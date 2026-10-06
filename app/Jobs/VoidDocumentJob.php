@@ -29,9 +29,9 @@ class VoidDocumentJob implements ShouldQueue
         // Daily correlative for voiding: count void communications sent today for this company
         $todayStr = now()->format('Ymd');
         $correlative = (int) (Document::where('company_id', $company->id)
-            ->where(function ($q) use ($todayStr): void {
+            ->where(function ($q) use ($todayStr): void{
                 $q->where('void_xml_path', 'like', "%-{$todayStr}-%")
-                    ->orWhere(function ($sub): void {
+                    ->orWhere(function ($sub): void{
                         $sub->whereNotNull('void_ticket')
                             ->whereDate('updated_at', now()->toDateString());
                     });
@@ -45,7 +45,7 @@ class VoidDocumentJob implements ShouldQueue
         $this->document->void_reason = $this->reason;
         $this->document->void_xml_path = $voiding['xml_path'];
 
-        if (! $result->isSuccess()) {
+        if (!$result->isSuccess()) {
             // Keep document accepted so the company can retry voiding; record error in void fields
             $this->document->status = 'accepted';
             $this->document->void_sunat_code = $result->getError()?->getCode() ?? 'ERROR';
@@ -88,7 +88,7 @@ class VoidDocumentJob implements ShouldQueue
                 $this->document->save();
             }
         } catch (Throwable $e) {
-            $this->document->void_sunat_description = 'Ticket generado: '.$ticket.'. Error al consultar: '.$e->getMessage();
+            $this->document->void_sunat_description = 'Ticket generado: ' . $ticket . '. Error al consultar: ' . $e->getMessage();
             $this->document->save();
         }
     }

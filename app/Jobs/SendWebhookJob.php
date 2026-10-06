@@ -62,7 +62,7 @@ class SendWebhookJob implements ShouldQueue
 
         $bodyRaw = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         $secret = $company->webhook_secret ?? '';
-        $signature = 'sha256='.hash_hmac('sha256', $bodyRaw ?: '', $secret);
+        $signature = 'sha256=' . hash_hmac('sha256', $bodyRaw ?: '', $secret);
 
         $delivery = WebhookDelivery::create([
             'company_id' => $company->id,

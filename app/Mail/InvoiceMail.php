@@ -19,7 +19,8 @@ class InvoiceMail extends Mailable
     public function __construct(
         public Document $document,
         public bool $useFacturadorSender = false
-    ) {}
+    ) {
+    }
 
     public function envelope(): Envelope
     {
@@ -27,7 +28,7 @@ class InvoiceMail extends Mailable
         $subject = $company->email_template_settings['subject']
             ?? "Comprobante Electrónico {$this->document->series}-{$this->document->correlative} - {$company->business_name}";
 
-        if (! $this->useFacturadorSender && $company->hasCustomMailConfig()) {
+        if (!$this->useFacturadorSender && $company->hasCustomMailConfig()) {
             $fromAddress = $company->mail_from_address
                 ?: ($company->mail_username ?: config('mail.from.address'));
             $fromName = $company->mail_from_name
@@ -45,7 +46,7 @@ class InvoiceMail extends Mailable
 
             // Los clientes deben responder a la empresa emisora
             $replyAddress = $company->mail_from_address
-                ?: ($company->mail_username ?: (! empty($company->company_copy_emails[0]) ? $company->company_copy_emails[0] : $fromAddress));
+                ?: ($company->mail_username ?: (!empty($company->company_copy_emails[0]) ? $company->company_copy_emails[0] : $fromAddress));
 
             $replyTo = [new Address($replyAddress, $fromName)];
         }

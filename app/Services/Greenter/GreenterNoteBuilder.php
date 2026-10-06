@@ -94,7 +94,7 @@ class GreenterNoteBuilder
         }
 
         // Guías y Documentos Relacionados
-        if (! empty($document->related_documents)) {
+        if (!empty($document->related_documents)) {
             $guias = [];
             foreach ($document->related_documents as $rel) {
                 $guias[] = (new GreenterDocRel)
@@ -122,7 +122,7 @@ class GreenterNoteBuilder
             $isExport = ($igvType === '40');
 
             $detail = (new SaleDetail)
-                ->setCodProducto($item->internal_code ?: 'ITEM-'.($index + 1))
+                ->setCodProducto($item->internal_code ?: 'ITEM-' . ($index + 1))
                 ->setUnidad($item->unit_code ?: 'NIU')
                 ->setDescripcion($item->description)
                 ->setCantidad($qty)
@@ -171,7 +171,7 @@ class GreenterNoteBuilder
                     ->setMtoValorVenta($qty * $unitVal);
             }
 
-            if (! empty($item->attributes['icbper']) || ! empty($item->attributes['icbper_amount'])) {
+            if (!empty($item->attributes['icbper']) || !empty($item->attributes['icbper_amount'])) {
                 $factor = (float) ($item->attributes['factor_icbper'] ?? 0.50);
                 $itemIcbper = (float) ($item->attributes['icbper_amount'] ?? ($qty * $factor));
                 $detail->setIcbper($itemIcbper)

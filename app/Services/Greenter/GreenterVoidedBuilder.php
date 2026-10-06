@@ -63,7 +63,7 @@ class GreenterVoidedBuilder
 
         $detail = (new SummaryDetail)
             ->setTipoDoc($document->type_code)
-            ->setSerieNro($document->series.'-'.$document->correlative)
+            ->setSerieNro($document->series . '-' . $document->correlative)
             ->setEstado('3') // 3 = Anulado en Catálogo 19 SUNAT
             ->setClienteTipo($document->client_doc_type)
             ->setClienteNro($document->client_doc_number)

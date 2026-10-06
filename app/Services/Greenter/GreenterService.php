@@ -39,7 +39,7 @@ class GreenterService
     {
         $see = new See;
         $cacheDir = storage_path('framework/cache/greenter');
-        if (! File::isDirectory($cacheDir)) {
+        if (!File::isDirectory($cacheDir)) {
             File::makeDirectory($cacheDir, 0755, true);
         }
         $see->setCachePath($cacheDir);
@@ -128,7 +128,7 @@ class GreenterService
         $soapClient = new SunatSoapClient;
         $soapClient->setService($endpoint);
         $soapClient->setCredentials(
-            $company->ruc.$company->sol_user,
+            $company->ruc . $company->sol_user,
             $company->sol_pass
         );
 
@@ -252,7 +252,7 @@ class GreenterService
         $soapClient = new SunatSoapClient;
         $soapClient->setService($endpoint);
         $soapClient->setCredentials(
-            $company->ruc.$company->sol_user,
+            $company->ruc . $company->sol_user,
             $company->sol_pass
         );
 
@@ -292,7 +292,7 @@ class GreenterService
             : sprintf('%s.%s', $baseName, $extension);
 
         if ($isVoid) {
-            $filename = 'VOID-'.$filename;
+            $filename = 'VOID-' . $filename;
         }
 
         return sprintf('tenants/%s/%s/%s/%s', $company->ruc, $year, $month, $filename);
@@ -309,7 +309,7 @@ class GreenterService
             : sprintf('%s.%s', $baseName, $extension);
 
         if ($isVoid) {
-            $filename = 'VOID-'.$filename;
+            $filename = 'VOID-' . $filename;
         }
 
         return sprintf('tenants/%s/%s/%s/despatches/%s', $company->ruc, $year, $month, $filename);

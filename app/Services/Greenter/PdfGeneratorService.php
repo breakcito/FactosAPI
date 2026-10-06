@@ -114,7 +114,7 @@ class PdfGeneratorService
                 <tr>
                     <td class='company-info'>
                         <div class='company-name'>{$company->business_name}</div>
-                        ".($company->trademark_name ? "<div style='font-size:11px; color:#555;'>{$company->trademark_name}</div>" : '')."
+                        " . ($company->trademark_name ? "<div style='font-size:11px; color:#555;'>{$company->trademark_name}</div>" : '') . "
                         <div class='company-details'>
                             Dirección: {$company->address}<br>
                             Ubigeo: {$company->ubigeo} - {$company->district}, {$company->province}, {$company->department}
@@ -144,18 +144,18 @@ class PdfGeneratorService
                 </tr>
                 <tr>
                     <td class='label'>Dirección:</td>
-                    <td>".($document->client_address ?: '-')."</td>
+                    <td>" . ($document->client_address ?: '-') . "</td>
                     <td class='label'>Forma de Pago:</td>
                     <td>{$formaPago}</td>
                 </tr>
-                ".($document->purchase_order || $document->plate_number ? "
+                " . ($document->purchase_order || $document->plate_number ? "
                 <tr>
-                    <td class='label'>".($document->purchase_order ? 'O/C:' : '').'</td>
-                    <td>'.($document->purchase_order ?: '')."</td>
-                    <td class='label'>".($document->plate_number ? 'Placa:' : '').'</td>
-                    <td>'.($document->plate_number ?: '').'</td>
+                    <td class='label'>" . ($document->purchase_order ? 'O/C:' : '') . '</td>
+                    <td>' . ($document->purchase_order ?: '') . "</td>
+                    <td class='label'>" . ($document->plate_number ? 'Placa:' : '') . '</td>
+                    <td>' . ($document->plate_number ?: '') . '</td>
                 </tr>
-                ' : '')."
+                ' : '') . "
             </table>
 
             <table class='items-table'>
@@ -180,7 +180,7 @@ class PdfGeneratorService
             <table class='bottom-table'>
                 <tr>
                     <td class='qr-section'>
-                        ".($qrCodeDataUri ? "<img src='{$qrCodeDataUri}' style='width: 100px; height: 100px; margin-bottom: 5px;'><br>" : '')."
+                        " . ($qrCodeDataUri ? "<img src='{$qrCodeDataUri}' style='width: 100px; height: 100px; margin-bottom: 5px;'><br>" : '') . "
                         <strong>DigestValue (Hash):</strong><br>
                         <code>{$document->hash}</code><br><br>
                         Representación impresa de la {$docTitle}.<br>
@@ -190,45 +190,45 @@ class PdfGeneratorService
                         <table class='totals-table'>
                             <tr>
                                 <td>Op. Gravadas:</td>
-                                <td class='text-right'>{$document->currency} ".number_format((float) $document->total_taxable, 2).'</td>
+                                <td class='text-right'>{$document->currency} " . number_format((float) $document->total_taxable, 2) . '</td>
                             </tr>
-                            '.((float) ($document->total_exportation ?? 0) > 0 ? "
+                            ' . ((float) ($document->total_exportation ?? 0) > 0 ? "
                             <tr>
                                 <td>Op. Exportación:</td>
-                                <td class='text-right'>{$document->currency} ".number_format((float) $document->total_exportation, 2).'</td>
-                            </tr>' : '').'
-                            '.((float) $document->total_exonerated > 0 ? "
+                                <td class='text-right'>{$document->currency} " . number_format((float) $document->total_exportation, 2) . '</td>
+                            </tr>' : '') . '
+                            ' . ((float) $document->total_exonerated > 0 ? "
                             <tr>
                                 <td>Op. Exoneradas:</td>
-                                <td class='text-right'>{$document->currency} ".number_format((float) $document->total_exonerated, 2).'</td>
-                            </tr>' : '').'
-                            '.((float) $document->total_unaffected > 0 ? "
+                                <td class='text-right'>{$document->currency} " . number_format((float) $document->total_exonerated, 2) . '</td>
+                            </tr>' : '') . '
+                            ' . ((float) $document->total_unaffected > 0 ? "
                             <tr>
                                 <td>Op. Inafectas:</td>
-                                <td class='text-right'>{$document->currency} ".number_format((float) $document->total_unaffected, 2).'</td>
-                            </tr>' : '').'
-                            '.((float) ($document->total_free ?? 0) > 0 ? "
+                                <td class='text-right'>{$document->currency} " . number_format((float) $document->total_unaffected, 2) . '</td>
+                            </tr>' : '') . '
+                            ' . ((float) ($document->total_free ?? 0) > 0 ? "
                             <tr>
                                 <td>Op. Gratuitas:</td>
-                                <td class='text-right'>{$document->currency} ".number_format((float) $document->total_free, 2).'</td>
-                            </tr>' : '').'
-                            '.((float) $document->total_discount > 0 ? "
+                                <td class='text-right'>{$document->currency} " . number_format((float) $document->total_free, 2) . '</td>
+                            </tr>' : '') . '
+                            ' . ((float) $document->total_discount > 0 ? "
                             <tr>
                                 <td>Descuento Total:</td>
-                                <td class='text-right'>{$document->currency} -".number_format((float) $document->total_discount, 2).'</td>
-                            </tr>' : '')."
+                                <td class='text-right'>{$document->currency} -" . number_format((float) $document->total_discount, 2) . '</td>
+                            </tr>' : '') . "
                             <tr>
                                 <td>I.G.V. (18%):</td>
-                                <td class='text-right'>{$document->currency} ".number_format((float) $document->total_igv, 2).'</td>
+                                <td class='text-right'>{$document->currency} " . number_format((float) $document->total_igv, 2) . '</td>
                             </tr>
-                            '.((float) $document->total_icbper > 0 ? "
+                            ' . ((float) $document->total_icbper > 0 ? "
                             <tr>
                                 <td>I.C.B.P.E.R.:</td>
-                                <td class='text-right'>{$document->currency} ".number_format((float) $document->total_icbper, 2).'</td>
-                            </tr>' : '')."
+                                <td class='text-right'>{$document->currency} " . number_format((float) $document->total_icbper, 2) . '</td>
+                            </tr>' : '') . "
                             <tr class='total-row'>
                                 <td>IMPORTE TOTAL:</td>
-                                <td class='text-right'>{$document->currency} ".number_format((float) $document->total, 2)."</td>
+                                <td class='text-right'>{$document->currency} " . number_format((float) $document->total, 2) . "</td>
                             </tr>
                         </table>
                     </td>
@@ -267,7 +267,7 @@ class PdfGeneratorService
             $writer = new Writer($renderer);
             $svg = $writer->writeString($qrContent);
 
-            return 'data:image/svg+xml;base64,'.base64_encode($svg);
+            return 'data:image/svg+xml;base64,' . base64_encode($svg);
         } catch (\Throwable) {
             return null;
         }
@@ -411,7 +411,7 @@ class PdfGeneratorService
             <table style='margin-top: 20px;'>
                 <tr>
                     <td style='width: 25%; text-align: center;'>
-                        ".($qrCodeDataUri ? "<img src='{$qrCodeDataUri}' style='width: 100px; height: 100px;'>" : '')."
+                        " . ($qrCodeDataUri ? "<img src='{$qrCodeDataUri}' style='width: 100px; height: 100px;'>" : '') . "
                     </td>
                     <td style='width: 75%; vertical-align: middle;'>
                         <p style='margin: 0; color: #64748b; font-size: 10px;'>
@@ -451,7 +451,7 @@ class PdfGeneratorService
             $writer = new Writer($renderer);
             $svg = $writer->writeString($qrContent);
 
-            return 'data:image/svg+xml;base64,'.base64_encode($svg);
+            return 'data:image/svg+xml;base64,' . base64_encode($svg);
         } catch (\Throwable) {
             return null;
         }

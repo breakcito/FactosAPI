@@ -27,7 +27,7 @@ class CertificateService
             } elseif (file_exists($path)) {
                 $content = file_get_contents($path);
             } else {
-                $appStoragePath = storage_path('app/'.ltrim($path, '/'));
+                $appStoragePath = storage_path('app/' . ltrim($path, '/'));
                 if (file_exists($appStoragePath)) {
                     $content = file_get_contents($appStoragePath);
                 }
@@ -60,10 +60,10 @@ class CertificateService
     public function convertPfxToPem(string $pfxContent, string $password): string
     {
         $certs = [];
-        if (! openssl_pkcs12_read($pfxContent, $certs, $password)) {
+        if (!openssl_pkcs12_read($pfxContent, $certs, $password)) {
             throw new RuntimeException('No se pudo descifrar el certificado PFX. Verifique la contraseña.');
         }
 
-        return ($certs['cert'] ?? '')."\n".($certs['pkey'] ?? '');
+        return ($certs['cert'] ?? '') . "\n" . ($certs['pkey'] ?? '');
     }
 }

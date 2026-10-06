@@ -17,6 +17,7 @@ class StoreCompanyRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'user_id' => ['nullable', 'exists:users,id'],
             'ruc' => ['required', 'string', 'size:11', 'regex:/^(10|15|17|20)\d{9}$/', 'unique:companies,ruc'],
             'business_name' => ['required', 'string', 'max:255'],
             'trademark_name' => ['nullable', 'string', 'max:255'],

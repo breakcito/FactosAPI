@@ -17,6 +17,7 @@ class UpdateCompanyRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'user_id' => ['nullable', 'exists:users,id'],
             'business_name' => ['sometimes', 'string', 'max:255'],
             'trademark_name' => ['nullable', 'string', 'max:255'],
             'address' => ['nullable', 'string', 'max:255'],

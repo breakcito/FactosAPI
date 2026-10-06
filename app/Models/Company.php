@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 /**
  * @property string $id
  * @property int $user_id
@@ -34,6 +36,7 @@ use Illuminate\Support\Carbon;
  * @property array<string>|null $company_copy_emails
  * @property bool $send_to_client_email
  * @property array<string, mixed>|null $email_template_settings
+ * @property Carbon|null $deleted_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read User $user
@@ -42,7 +45,7 @@ use Illuminate\Support\Carbon;
 class Company extends Model
 {
     /** @use HasFactory<CompanyFactory> */
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $fillable = [
         'user_id',
@@ -111,7 +114,7 @@ class Company extends Model
 
     public function hasCustomMailConfig(): bool
     {
-        return ! empty($this->mail_username) && ! empty($this->mail_password);
+        return !empty($this->mail_username) && !empty($this->mail_password);
     }
 
     /**

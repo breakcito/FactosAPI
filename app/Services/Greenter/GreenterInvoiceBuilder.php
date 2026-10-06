@@ -105,7 +105,7 @@ class GreenterInvoiceBuilder
         if (strtolower($document->payment_method) === 'credito') {
             $invoice->setFormaPago(new FormaPagoCredito($total));
 
-            if (! empty($document->installments)) {
+            if (!empty($document->installments)) {
                 $cuotas = [];
                 foreach ($document->installments as $inst) {
                     $cuotas[] = (new Cuota)
@@ -120,7 +120,7 @@ class GreenterInvoiceBuilder
 
         // Retenciones y Descuentos globales
         $descuentos = [];
-        if (! empty($document->retention)) {
+        if (!empty($document->retention)) {
             $ret = $document->retention;
             $descuentos[] = (new Charge)
                 ->setCodTipo('62')
@@ -136,12 +136,12 @@ class GreenterInvoiceBuilder
                 ->setMonto((float) $document->total_discount);
         }
 
-        if (! empty($descuentos)) {
+        if (!empty($descuentos)) {
             $invoice->setDescuentos($descuentos);
         }
 
         // Detracciones
-        if (! empty($document->detraction)) {
+        if (!empty($document->detraction)) {
             $detr = $document->detraction;
             $detraccion = (new Detraction)
                 ->setCodMedioPago($detr['payment_method_code'] ?? '001')
@@ -153,7 +153,7 @@ class GreenterInvoiceBuilder
         }
 
         // Anticipos
-        if (! empty($document->prepayments)) {
+        if (!empty($document->prepayments)) {
             $anticipos = [];
             $totalAnticipos = 0.0;
             foreach ($document->prepayments as $ant) {
@@ -168,7 +168,7 @@ class GreenterInvoiceBuilder
         }
 
         // Guías y Documentos Relacionados
-        if (! empty($document->related_documents)) {
+        if (!empty($document->related_documents)) {
             $guias = [];
             foreach ($document->related_documents as $rel) {
                 $guias[] = (new GreenterDocRel)
@@ -196,7 +196,7 @@ class GreenterInvoiceBuilder
             $isExport = ($igvType === '40');
 
             $detail = (new SaleDetail)
-                ->setCodProducto($item->internal_code ?: 'ITEM-'.($index + 1))
+                ->setCodProducto($item->internal_code ?: 'ITEM-' . ($index + 1))
                 ->setUnidad($item->unit_code ?: 'NIU')
                 ->setDescripcion($item->description)
                 ->setCantidad($qty)
@@ -245,7 +245,7 @@ class GreenterInvoiceBuilder
                     ->setMtoValorVenta($qty * $unitVal);
             }
 
-            if (! empty($item->attributes['icbper']) || ! empty($item->attributes['icbper_amount'])) {
+            if (!empty($item->attributes['icbper']) || !empty($item->attributes['icbper_amount'])) {
                 $factor = (float) ($item->attributes['factor_icbper'] ?? 0.50);
                 $itemIcbper = (float) ($item->attributes['icbper_amount'] ?? ($qty * $factor));
                 $detail->setIcbper($itemIcbper)
@@ -273,7 +273,7 @@ class GreenterInvoiceBuilder
                 ->setValue('TRANSFERENCIA GRATUITA DE UN BIEN Y/O SERVICIO PRESTADO GRATUITAMENTE');
         }
 
-        if (! empty($document->detraction)) {
+        if (!empty($document->detraction)) {
             $legends[] = (new Legend)
                 ->setCode('2006')
                 ->setValue('Operación sujeta a detracción');

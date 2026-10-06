@@ -109,7 +109,7 @@ class GreenterDespatchBuilder
             ->setEnvio($envio);
 
         // Documentos Relacionados (Factura, Boleta)
-        if (! empty($despatch->related_documents)) {
+        if (!empty($despatch->related_documents)) {
             $addDocs = [];
             foreach ($despatch->related_documents as $rel) {
                 $addDocs[] = (new AdditionalDoc)
@@ -124,7 +124,7 @@ class GreenterDespatchBuilder
         $details = [];
         foreach ($despatch->items as $index => $item) {
             $detail = (new DespatchDetail)
-                ->setCodigo($item->internal_code ?: 'ITEM-'.($index + 1))
+                ->setCodigo($item->internal_code ?: 'ITEM-' . ($index + 1))
                 ->setDescripcion($item->description)
                 ->setUnidad($item->unit_code ?: 'NIU')
                 ->setCantidad((float) $item->quantity);

@@ -18,7 +18,7 @@ class WebhookController extends Controller
 
         $target = $webhook->document ?? $webhook->despatch;
 
-        if (! $target) {
+        if (!$target) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'No se encontró el comprobante o guía asociado a este webhook.',

@@ -6,21 +6,55 @@ class NumeroALetras
 {
     /** @var array<int, string> */
     private static array $unidades = [
-        '', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE',
-        'DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISEIS', 'DIECISIETE',
-        'DIECIOCHO', 'DIECINUEVE', 'VEINTE',
+        '',
+        'UN',
+        'DOS',
+        'TRES',
+        'CUATRO',
+        'CINCO',
+        'SEIS',
+        'SIETE',
+        'OCHO',
+        'NUEVE',
+        'DIEZ',
+        'ONCE',
+        'DOCE',
+        'TRECE',
+        'CATORCE',
+        'QUINCE',
+        'DIECISEIS',
+        'DIECISIETE',
+        'DIECIOCHO',
+        'DIECINUEVE',
+        'VEINTE',
     ];
 
     /** @var array<int, string> */
     private static array $decenas = [
-        '', 'DIEZ', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA',
-        'OCHENTA', 'NOVENTA',
+        '',
+        'DIEZ',
+        'VEINTE',
+        'TREINTA',
+        'CUARENTA',
+        'CINCUENTA',
+        'SESENTA',
+        'SETENTA',
+        'OCHENTA',
+        'NOVENTA',
     ];
 
     /** @var array<int, string> */
     private static array $centenas = [
-        '', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS',
-        'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS',
+        '',
+        'CIENTO',
+        'DOSCIENTOS',
+        'TRESCIENTOS',
+        'CUATROCIENTOS',
+        'QUINIENTOS',
+        'SEISCIENTOS',
+        'SETECIENTOS',
+        'OCHOCIENTOS',
+        'NOVECIENTOS',
     ];
 
     public static function convert(float|string $number, string $currency = 'PEN'): string
@@ -47,7 +81,7 @@ class NumeroALetras
     private static function convertNumber(int $n): string
     {
         if ($n < 0) {
-            return 'MENOS '.self::convertNumber(abs($n));
+            return 'MENOS ' . self::convertNumber(abs($n));
         }
 
         if ($n <= 20) {
@@ -55,14 +89,14 @@ class NumeroALetras
         }
 
         if ($n < 30) {
-            return 'VEINTI'.self::$unidades[$n - 20];
+            return 'VEINTI' . self::$unidades[$n - 20];
         }
 
         if ($n < 100) {
             $dec = (int) ($n / 10);
             $rem = $n % 10;
 
-            return self::$decenas[$dec].($rem > 0 ? ' Y '.self::$unidades[$rem] : '');
+            return self::$decenas[$dec] . ($rem > 0 ? ' Y ' . self::$unidades[$rem] : '');
         }
 
         if ($n === 100) {
@@ -73,7 +107,7 @@ class NumeroALetras
             $cen = (int) ($n / 100);
             $rem = $n % 100;
 
-            return self::$centenas[$cen].($rem > 0 ? ' '.self::convertNumber($rem) : '');
+            return self::$centenas[$cen] . ($rem > 0 ? ' ' . self::convertNumber($rem) : '');
         }
 
         if ($n === 1000) {
@@ -83,22 +117,22 @@ class NumeroALetras
         if ($n < 1000000) {
             $miles = (int) ($n / 1000);
             $rem = $n % 1000;
-            $milesStr = ($miles === 1) ? 'MIL' : self::convertNumber($miles).' MIL';
+            $milesStr = ($miles === 1) ? 'MIL' : self::convertNumber($miles) . ' MIL';
 
-            return $milesStr.($rem > 0 ? ' '.self::convertNumber($rem) : '');
+            return $milesStr . ($rem > 0 ? ' ' . self::convertNumber($rem) : '');
         }
 
         if ($n < 2000000) {
             $rem = $n % 1000000;
 
-            return 'UN MILLÓN'.($rem > 0 ? ' '.self::convertNumber($rem) : '');
+            return 'UN MILLÓN' . ($rem > 0 ? ' ' . self::convertNumber($rem) : '');
         }
 
         if ($n < 1000000000) {
             $millones = (int) ($n / 1000000);
             $rem = $n % 1000000;
 
-            return self::convertNumber($millones).' MILLONES'.($rem > 0 ? ' '.self::convertNumber($rem) : '');
+            return self::convertNumber($millones) . ' MILLONES' . ($rem > 0 ? ' ' . self::convertNumber($rem) : '');
         }
 
         return (string) $n;

@@ -37,7 +37,7 @@ class SendDespatchToSunatJob implements ShouldQueue
         }
 
         $disk = config('factos.storage_disk', 'local');
-        if (! $this->despatch->xml_path || ! Storage::disk($disk)->exists($this->despatch->xml_path)) {
+        if (!$this->despatch->xml_path || !Storage::disk($disk)->exists($this->despatch->xml_path)) {
             Log::error("Guía XML no encontrado para {$this->despatch->id} en {$this->despatch->xml_path}");
             $this->despatch->update([
                 'status' => 'failed',
@@ -127,7 +127,7 @@ class SendDespatchToSunatJob implements ShouldQueue
                     $this->despatch->update([
                         'status' => 'waiting_sunat',
                         'sunat_code' => (string) $statusResult->getCode() ?: '98',
-                        'sunat_description' => 'Guía enviada a SUNAT. Ticket en procesamiento: '.$ticket,
+                        'sunat_description' => 'Guía enviada a SUNAT. Ticket en procesamiento: ' . $ticket,
                         'next_retry_at' => Carbon::now()->addMinutes(1),
                     ]);
 
@@ -151,7 +151,7 @@ class SendDespatchToSunatJob implements ShouldQueue
             SendWebhookJob::dispatch($this->despatch, 'despatch.rejected')->onQueue('webhooks');
 
         } catch (Throwable $e) {
-            $this->handleRetry('Error de conexión con SUNAT: '.$e->getMessage());
+            $this->handleRetry('Error de conexión con SUNAT: ' . $e->getMessage());
         }
     }
 

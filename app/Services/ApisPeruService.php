@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -18,10 +19,10 @@ class ApisPeruService
 
     public function __construct()
     {
-        $this->dniRucBaseUrl = config('factos.apisperu.dni_ruc_url', 'https://dniruc.apisperu.com/api/v1');
-        $this->tcBaseUrl = config('factos.apisperu.exchange_rate_url', 'https://tipocambio.apisperu.com/api/v1');
-        $this->dniRucToken = (string) config('factos.apisperu.token_dni_ruc', '');
-        $this->tcToken = (string) config('factos.apisperu.token_exchange_rate', '');
+        $this->dniRucBaseUrl = SystemSetting::get('dni_ruc_url', config('factos.apisperu.dni_ruc_url', 'https://dniruc.apisperu.com/api/v1'));
+        $this->tcBaseUrl = SystemSetting::get('exchange_rate_url', config('factos.apisperu.exchange_rate_url', 'https://tipocambio.apisperu.com/api/v1'));
+        $this->dniRucToken = (string) (SystemSetting::get('api_key_dni_ruc') ?: config('factos.apisperu.token_dni_ruc', ''));
+        $this->tcToken = (string) (SystemSetting::get('api_key_tc') ?: config('factos.apisperu.token_exchange_rate', ''));
     }
 
     /**
@@ -37,7 +38,7 @@ class ApisPeruService
                 ->timeout(10)
                 ->get($url);
 
-            if (! $response->successful()) {
+            if (!$response->successful()) {
                 throw new RuntimeException("Error al consultar DNI ({$response->status()}): {$response->body()}");
             }
 
@@ -69,7 +70,7 @@ class ApisPeruService
                 ->timeout(10)
                 ->get($url);
 
-            if (! $response->successful()) {
+            if (!$response->successful()) {
                 throw new RuntimeException("Error al consultar RUC ({$response->status()}): {$response->body()}");
             }
 
@@ -110,7 +111,7 @@ class ApisPeruService
                 ->timeout(10)
                 ->get($url);
 
-            if (! $response->successful()) {
+            if (!$response->successful()) {
                 throw new RuntimeException("Error al consultar tipo de cambio ({$response->status()}): {$response->body()}");
             }
 

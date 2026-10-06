@@ -100,13 +100,13 @@ class StoreInvoiceRequest extends FormRequest
             'client.doc_type' => [
                 'required',
                 'string',
-                ($typeCode === '01' && ! $isExport) ? 'in:6' : 'in:0,1,4,6,7',
+                ($typeCode === '01' && !$isExport) ? 'in:6' : 'in:0,1,4,6,7',
             ],
             'client.doc_number' => [
                 'required',
                 'string',
-                ($typeCode === '01' && ! $isExport) ? 'size:11' : 'max:15',
-                ($typeCode === '01' && ! $isExport) ? 'regex:/^(10|15|17|20)\d{9}$/' : 'regex:/^[A-Z0-9\-]+$/i',
+                ($typeCode === '01' && !$isExport) ? 'size:11' : 'max:15',
+                ($typeCode === '01' && !$isExport) ? 'regex:/^(10|15|17|20)\d{9}$/' : 'regex:/^[A-Z0-9\-]+$/i',
             ],
             'client.name' => ['required', 'string', 'max:255'],
             'client.address' => ['nullable', 'string', 'max:255'],
@@ -214,10 +214,10 @@ class StoreInvoiceRequest extends FormRequest
         }
 
         $items = $this->input('items', []);
-        if (is_array($items) && ! empty($items)) {
+        if (is_array($items) && !empty($items)) {
             $allExport = true;
             foreach ($items as $item) {
-                if (! isset($item['igv_type']) || (string) $item['igv_type'] !== '40') {
+                if (!isset($item['igv_type']) || (string) $item['igv_type'] !== '40') {
                     $allExport = false;
                     break;
                 }
@@ -247,11 +247,11 @@ class StoreInvoiceRequest extends FormRequest
             'totals.total.required' => 'El importe total del comprobante es obligatorio.',
             'installments.required_if' => 'Las cuotas son requeridas cuando la forma de pago es al crédito.',
             'note.required' => 'El objeto note es obligatorio para Notas de Crédito y Débito.',
-            'client.doc_type.in' => ($typeCode === '01' && ! $isExport)
+            'client.doc_type.in' => ($typeCode === '01' && !$isExport)
                 ? 'Para Facturas (01) de venta nacional el tipo de documento del cliente debe ser RUC (6).'
                 : 'El tipo de documento del cliente no es válido.',
             'client.doc_number.size' => 'El RUC del cliente debe tener exactamente 11 dígitos.',
-            'client.doc_number.regex' => ($typeCode === '01' && ! $isExport)
+            'client.doc_number.regex' => ($typeCode === '01' && !$isExport)
                 ? 'El RUC del cliente debe tener 11 dígitos numéricos válidos (comenzar con 10, 15, 17 o 20).'
                 : 'El número de documento del cliente no es válido.',
         ];

@@ -18,11 +18,23 @@ class DespatchController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $userCompanyIds = $request->user()->companies()->pluck('id');
+        $user = $request->user();
+        $query = Despatch::query()->with('company');
 
-        $query = Despatch::query()
-            ->whereIn('company_id', $userCompanyIds)
-            ->with('company');
+        if (!$user->isSuperAdmin()) {
+            $userCompanyIds = $user->companies()->pluck('id');
+            $query->whereIn('company_id', $userCompanyIds);
+        }
+
+        if ($request->filled('search')) {
+            $search = (string) $request->query('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('series', 'like', "%{$search}%")
+                    ->orWhere('correlative', 'like', "%{$search}%")
+                    ->orWhere('recipient_name', 'like', "%{$search}%")
+                    ->orWhere('recipient_doc_number', 'like', "%{$search}%");
+            });
+        }
 
         if ($request->filled('company_id')) {
             $query->where('company_id', $request->query('company_id'));
@@ -133,7 +145,8 @@ class DespatchController extends Controller
 
     public function show(Request $request, Despatch $despatch): JsonResponse
     {
-        abort_if($despatch->company->user_id !== $request->user()->id, 403, 'No tiene autorización para consultar esta guía de remisión.');
+        $user = $request->user();
+        abort_if(!$user->isSuperAdmin() && $despatch->company->user_id !== $user->id, 403, 'No tiene autorización para consultar esta guía de remisión.');
 
         $despatch->loadMissing(['company', 'items']);
         $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
@@ -199,7 +212,8 @@ class DespatchController extends Controller
 
     public function void(Request $request, Despatch $despatch): JsonResponse
     {
-        abort_if($despatch->company->user_id !== $request->user()->id, 403, 'No tiene autorización para anular esta guía de remisión.');
+        $user = $request->user();
+        abort_if(!$user->isSuperAdmin() && $despatch->company->user_id !== $user->id, 403, 'No tiene autorización para anular esta guía de remisión.');
 
         $request->validate([
             'reason' => ['required', 'string', 'min:3', 'max:250'],
@@ -246,7 +260,7 @@ class DespatchController extends Controller
     {
         $disk = config('factos.storage_disk', 'local');
 
-        if (! $despatch->xml_path || ! Storage::disk($disk)->exists($despatch->xml_path)) {
+        if (!$despatch->xml_path || !Storage::disk($disk)->exists($despatch->xml_path)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Archivo XML no encontrado o guía aún no firmada.',
@@ -267,7 +281,7 @@ class DespatchController extends Controller
     {
         $disk = config('factos.storage_disk', 'local');
 
-        if (! $despatch->cdr_path || ! Storage::disk($disk)->exists($despatch->cdr_path)) {
+        if (!$despatch->cdr_path || !Storage::disk($disk)->exists($despatch->cdr_path)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Archivo CDR no disponible para esta guía.',
@@ -288,7 +302,7 @@ class DespatchController extends Controller
     {
         $disk = config('factos.storage_disk', 'local');
 
-        if (! $despatch->pdf_path || ! Storage::disk($disk)->exists($despatch->pdf_path)) {
+        if (!$despatch->pdf_path || !Storage::disk($disk)->exists($despatch->pdf_path)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Archivo PDF no disponible para esta guía.',

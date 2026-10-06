@@ -16,11 +16,23 @@ class DocumentController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $userCompanyIds = $request->user()->companies()->pluck('id');
+        $user = $request->user();
+        $query = Document::query()->with('company');
 
-        $query = Document::query()
-            ->whereIn('company_id', $userCompanyIds)
-            ->with('company');
+        if (!$user->isSuperAdmin()) {
+            $userCompanyIds = $user->companies()->pluck('id');
+            $query->whereIn('company_id', $userCompanyIds);
+        }
+
+        if ($request->filled('search')) {
+            $search = (string) $request->query('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('series', 'like', "%{$search}%")
+                    ->orWhere('correlative', 'like', "%{$search}%")
+                    ->orWhere('client_name', 'like', "%{$search}%")
+                    ->orWhere('client_doc_number', 'like', "%{$search}%");
+            });
+        }
 
         if ($request->filled('company_id')) {
             $query->where('company_id', $request->query('company_id'));
@@ -60,10 +72,12 @@ class DocumentController extends Controller
 
     public function show(Request $request, Document $document): JsonResponse
     {
-        abort_if($document->company->user_id !== $request->user()->id, 403, 'No tiene autorización para consultar este comprobante.');
+        $user = $request->user();
+        abort_if(!$user->isSuperAdmin() && $document->company->user_id !== $user->id, 403, 'No tiene autorización para consultar este comprobante.');
 
         $document->loadMissing(['company', 'items']);
         $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
+
 
         return response()->json([
             'status' => 'success',
@@ -123,23 +137,30 @@ class DocumentController extends Controller
         $validated = $request->validated();
         $reason = $validated['reason'];
 
-        if (! $document) {
-            $userCompanyIds = $request->user()->companies()->pluck('id');
-            $document = Document::whereIn('company_id', $userCompanyIds)
+        $user = $request->user();
+
+        if (!$document) {
+            $query = Document::query()
                 ->where('company_id', $validated['company_id'])
                 ->where('type_code', $validated['type_code'])
                 ->where('series', strtoupper($validated['series']))
-                ->where('correlative', $validated['correlative'])
-                ->first();
+                ->where('correlative', $validated['correlative']);
 
-            if (! $document) {
+            if (!$user->isSuperAdmin()) {
+                $userCompanyIds = $user->companies()->pluck('id');
+                $query->whereIn('company_id', $userCompanyIds);
+            }
+
+            $document = $query->first();
+
+            if (!$document) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'No se encontró el comprobante que se desea anular o no pertenece a sus empresas.',
                 ], 404);
             }
         } else {
-            abort_if($document->company->user_id !== $request->user()->id, 403, 'No tiene autorización para anular este comprobante.');
+            abort_if(!$user->isSuperAdmin() && $document->company->user_id !== $user->id, 403, 'No tiene autorización para anular este comprobante.');
         }
 
         if ($document->status === 'voided') {
@@ -187,7 +208,7 @@ class DocumentController extends Controller
     {
         $disk = config('factos.storage_disk', 'local');
 
-        if (! $document->xml_path || ! Storage::disk($disk)->exists($document->xml_path)) {
+        if (!$document->xml_path || !Storage::disk($disk)->exists($document->xml_path)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Archivo XML no encontrado o comprobante aún no firmado.',
@@ -208,7 +229,7 @@ class DocumentController extends Controller
     {
         $disk = config('factos.storage_disk', 'local');
 
-        if (! $document->cdr_path || ! Storage::disk($disk)->exists($document->cdr_path)) {
+        if (!$document->cdr_path || !Storage::disk($disk)->exists($document->cdr_path)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Archivo CDR no disponible o aún no emitido por SUNAT.',
@@ -229,7 +250,7 @@ class DocumentController extends Controller
     {
         $disk = config('factos.storage_disk', 'local');
 
-        if (! $document->pdf_path || ! Storage::disk($disk)->exists($document->pdf_path)) {
+        if (!$document->pdf_path || !Storage::disk($disk)->exists($document->pdf_path)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Archivo PDF no disponible para este comprobante.',
@@ -250,7 +271,7 @@ class DocumentController extends Controller
     {
         $disk = config('factos.storage_disk', 'local');
 
-        if (! $document->void_xml_path || ! Storage::disk($disk)->exists($document->void_xml_path)) {
+        if (!$document->void_xml_path || !Storage::disk($disk)->exists($document->void_xml_path)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Archivo XML de anulación no encontrado.',
@@ -262,7 +283,7 @@ class DocumentController extends Controller
 
         return response($xml, 200, [
             'Content-Type' => 'application/xml',
-            'Content-Disposition' => 'attachment; filename="VOID-'.basename($document->void_xml_path).'"',
+            'Content-Disposition' => 'attachment; filename="VOID-' . basename($document->void_xml_path) . '"',
         ]);
     }
 
@@ -270,7 +291,7 @@ class DocumentController extends Controller
     {
         $disk = config('factos.storage_disk', 'local');
 
-        if (! $document->void_cdr_path || ! Storage::disk($disk)->exists($document->void_cdr_path)) {
+        if (!$document->void_cdr_path || !Storage::disk($disk)->exists($document->void_cdr_path)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Archivo CDR de anulación no encontrado.',
@@ -282,7 +303,7 @@ class DocumentController extends Controller
 
         return response($cdrZip, 200, [
             'Content-Type' => 'application/zip',
-            'Content-Disposition' => 'attachment; filename="R-VOID-'.basename($document->void_cdr_path).'"',
+            'Content-Disposition' => 'attachment; filename="R-VOID-' . basename($document->void_cdr_path) . '"',
         ]);
     }
 }

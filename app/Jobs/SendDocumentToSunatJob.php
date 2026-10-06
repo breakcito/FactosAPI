@@ -28,7 +28,7 @@ class SendDocumentToSunatJob implements ShouldQueue
         $disk = config('factos.storage_disk', 'local');
 
         // Check if signed XML exists in storage
-        if (! $this->document->xml_path || ! Storage::disk($disk)->exists($this->document->xml_path)) {
+        if (!$this->document->xml_path || !Storage::disk($disk)->exists($this->document->xml_path)) {
             Log::error("Signed XML file not found for document {$this->document->id} at {$this->document->xml_path}");
             $this->document->update([
                 'status' => 'failed',

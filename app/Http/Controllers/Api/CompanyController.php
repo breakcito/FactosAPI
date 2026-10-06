@@ -13,10 +13,35 @@ class CompanyController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $companies = Company::query()
-            ->where('user_id', $request->user()->id)
-            ->latest()
-            ->get();
+        $user = $request->user();
+        $query = Company::query()->with('user:id,name,email')->withCount(['documents', 'webhookDeliveries']);
+
+        if (!$user->isSuperAdmin()) {
+            $query->where('user_id', $user->id);
+        } else {
+            if ($request->filled('user_id')) {
+                $query->where('user_id', $request->query('user_id'));
+            }
+        }
+
+        if ($request->filled('search')) {
+            $search = (string) $request->query('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('ruc', 'like', "%{$search}%")
+                    ->orWhere('business_name', 'like', "%{$search}%")
+                    ->orWhere('trademark_name', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('is_production')) {
+            $query->where('is_production', filter_var($request->query('is_production'), FILTER_VALIDATE_BOOLEAN));
+        }
+
+        if ($request->filled('is_active')) {
+            $query->where('is_active', filter_var($request->query('is_active'), FILTER_VALIDATE_BOOLEAN));
+        }
+
+        $companies = $query->latest()->get();
 
         return response()->json([
             'status' => 'success',
@@ -26,8 +51,14 @@ class CompanyController extends Controller
 
     public function store(StoreCompanyRequest $request): JsonResponse
     {
+        $user = $request->user();
         $data = $request->validated();
-        $data['user_id'] = $request->user()->id;
+
+        if ($user->isSuperAdmin() && !empty($data['user_id'])) {
+            $data['user_id'] = $data['user_id'];
+        } else {
+            $data['user_id'] = $user->id;
+        }
 
         if ($request->hasFile('certificate')) {
             $file = $request->file('certificate');
@@ -44,25 +75,31 @@ class CompanyController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Empresa emisora registrada correctamente.',
-            'data' => $company,
+            'data' => $company->load('user:id,name,email'),
         ], 201);
     }
 
     public function show(Request $request, Company $company): JsonResponse
     {
-        abort_if($company->user_id !== $request->user()->id, 403, 'No tiene autorización para acceder a esta empresa.');
+        $user = $request->user();
+        abort_if(!$user->isSuperAdmin() && $company->user_id !== $user->id, 403, 'No tiene autorización para acceder a esta empresa.');
 
         return response()->json([
             'status' => 'success',
-            'data' => $company,
+            'data' => $company->load(['user:id,name,email'])->loadCount(['documents', 'webhookDeliveries']),
         ]);
     }
 
     public function update(UpdateCompanyRequest $request, Company $company): JsonResponse
     {
-        abort_if($company->user_id !== $request->user()->id, 403, 'No tiene autorización para modificar esta empresa.');
+        $user = $request->user();
+        abort_if(!$user->isSuperAdmin() && $company->user_id !== $user->id, 403, 'No tiene autorización para modificar esta empresa.');
 
         $data = $request->validated();
+
+        if (!$user->isSuperAdmin()) {
+            unset($data['user_id']);
+        }
 
         if ($request->hasFile('certificate')) {
             $file = $request->file('certificate');
@@ -79,13 +116,35 @@ class CompanyController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Empresa actualizada correctamente.',
-            'data' => $company->fresh(),
+            'data' => $company->fresh()->load('user:id,name,email'),
+        ]);
+    }
+
+    public function destroy(Request $request, Company $company): JsonResponse
+    {
+        $user = $request->user();
+        abort_if(!$user->isSuperAdmin() && $company->user_id !== $user->id, 403, 'No tiene autorización para eliminar esta empresa.');
+
+        if ($company->documents()->exists()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No se puede eliminar la empresa porque tiene comprobantes emitidos. Puedes desactivarla en su lugar.',
+            ], 422);
+        }
+
+        $company->webhookDeliveries()->delete();
+        $company->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Empresa eliminada correctamente.',
         ]);
     }
 
     public function webhooks(Request $request, Company $company): JsonResponse
     {
-        abort_if($company->user_id !== $request->user()->id, 403, 'No tiene autorización para acceder a los webhooks de esta empresa.');
+        $user = $request->user();
+        abort_if(!$user->isSuperAdmin() && $company->user_id !== $user->id, 403, 'No tiene autorización para acceder a los webhooks de esta empresa.');
 
         $deliveries = $company->webhookDeliveries()
             ->latest()

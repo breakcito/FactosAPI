@@ -23,17 +23,19 @@ class WSSESecurityHeader extends SoapHeader
         );
 
         $security = new SoapVar(
-            [new SoapVar(
-                [
-                    new SoapVar($username, XSD_STRING, null, null, 'Username', self::WSS_NAMESPACE),
-                    new SoapVar($passwordXml, XSD_ANYXML),
-                ],
-                SOAP_ENC_OBJECT,
-                null,
-                null,
-                'UsernameToken',
-                self::WSS_NAMESPACE
-            )],
+            [
+                new SoapVar(
+                    [
+                        new SoapVar($username, XSD_STRING, null, null, 'Username', self::WSS_NAMESPACE),
+                        new SoapVar($passwordXml, XSD_ANYXML),
+                    ],
+                    SOAP_ENC_OBJECT,
+                    null,
+                    null,
+                    'UsernameToken',
+                    self::WSS_NAMESPACE
+                )
+            ],
             SOAP_ENC_OBJECT
         );
 

@@ -30,17 +30,17 @@ class SendInvoiceEmailJob implements ShouldQueue
         $company = $this->document->company;
 
         // Cleanly discard if email notifications are inactive
-        if (! $company->email_notifications_active) {
+        if (!$company->email_notifications_active) {
             return;
         }
 
         $clientEmail = null;
-        if ($company->send_to_client_email && ! empty($this->document->client_email)) {
+        if ($company->send_to_client_email && !empty($this->document->client_email)) {
             $clientEmail = filter_var($this->document->client_email, FILTER_VALIDATE_EMAIL) ?: null;
         }
 
         $ccEmails = [];
-        if (! empty($company->company_copy_emails)) {
+        if (!empty($company->company_copy_emails)) {
             foreach ($company->company_copy_emails as $email) {
                 if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     $ccEmails[] = $email;
@@ -48,7 +48,7 @@ class SendInvoiceEmailJob implements ShouldQueue
             }
         }
 
-        if (! $clientEmail && empty($ccEmails)) {
+        if (!$clientEmail && empty($ccEmails)) {
             Log::info("SendInvoiceEmailJob: No valid recipient found for document {$this->document->id}");
 
             return;
@@ -62,7 +62,7 @@ class SendInvoiceEmailJob implements ShouldQueue
                 try {
                     $companyMailer = $this->resolveCompanyMailer($company);
                     $pendingMail = $companyMailer->to($clientEmail);
-                    if (! empty($ccEmails)) {
+                    if (!empty($ccEmails)) {
                         $pendingMail->cc($ccEmails);
                     }
 
@@ -74,11 +74,11 @@ class SendInvoiceEmailJob implements ShouldQueue
             }
 
             // Si la empresa no proporcionó credenciales o falló el envío con las suyas, el facturador lo envía
-            if (! $sent) {
+            if (!$sent) {
                 try {
-                    $facturadorMailer = Mail::mailer();
+                    $facturadorMailer = $this->resolveFacturadorMailer();
                     $pendingMail = $facturadorMailer->to($clientEmail);
-                    if (! empty($ccEmails)) {
+                    if (!empty($ccEmails)) {
                         $pendingMail->cc($ccEmails);
                     }
 
@@ -92,9 +92,9 @@ class SendInvoiceEmailJob implements ShouldQueue
             // El correo del facturador se usa para enviar las notificaciones automáticas a la empresa emisora
             $primaryCompanyEmail = array_shift($ccEmails);
             try {
-                $facturadorMailer = Mail::mailer();
+                $facturadorMailer = $this->resolveFacturadorMailer();
                 $pendingMail = $facturadorMailer->to($primaryCompanyEmail);
-                if (! empty($ccEmails)) {
+                if (!empty($ccEmails)) {
                     $pendingMail->cc($ccEmails);
                 }
 
@@ -126,5 +126,37 @@ class SendInvoiceEmailJob implements ShouldQueue
         ]);
 
         return Mail::mailer($mailerKey);
+    }
+
+    private function resolveFacturadorMailer(): Mailer
+    {
+        $mailer = \App\Models\SystemSetting::get('mail_mailer', config('mail.default', 'smtp'));
+
+        if ($mailer === 'smtp') {
+            $host = \App\Models\SystemSetting::get('mail_host', config('mail.mailers.smtp.host', 'smtp.gmail.com'));
+            $port = (int) \App\Models\SystemSetting::get('mail_port', config('mail.mailers.smtp.port', 587));
+            $username = \App\Models\SystemSetting::get('mail_username', config('mail.mailers.smtp.username'));
+            $password = \App\Models\SystemSetting::get('mail_password', config('mail.mailers.smtp.password'));
+            $encryption = strtolower((string) \App\Models\SystemSetting::get('mail_encryption', config('mail.mailers.smtp.encryption', 'tls')));
+            if ($encryption === 'none' || $encryption === 'null' || $encryption === '') {
+                $encryption = null;
+            }
+
+            config([
+                'mail.mailers.facturador_system' => [
+                    'transport' => 'smtp',
+                    'host' => $host,
+                    'port' => $port,
+                    'encryption' => $encryption,
+                    'username' => $username,
+                    'password' => $password,
+                    'timeout' => 15,
+                ],
+            ]);
+
+            return Mail::mailer('facturador_system');
+        }
+
+        return Mail::mailer();
     }
 }
