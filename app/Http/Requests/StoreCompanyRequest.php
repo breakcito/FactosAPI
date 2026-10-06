@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreCompanyRequest extends FormRequest
 {
@@ -18,7 +19,14 @@ class StoreCompanyRequest extends FormRequest
     {
         return [
             'user_id' => ['nullable', 'exists:users,id'],
-            'ruc' => ['required', 'string', 'size:11', 'regex:/^(10|15|17|20)\d{9}$/', 'unique:companies,ruc'],
+            'ruc' => [
+                'required',
+                'string',
+                'size:11',
+                'regex:/^(10|15|17|20)\d{9}$/',
+                Rule::unique('companies', 'ruc')
+                    ->where(fn ($q) => $q->where('user_id', $this->input('user_id') ?? $this->user()?->id)->whereNull('deleted_at')),
+            ],
             'business_name' => ['required', 'string', 'max:255'],
             'trademark_name' => ['nullable', 'string', 'max:255'],
             'address' => ['nullable', 'string', 'max:255'],

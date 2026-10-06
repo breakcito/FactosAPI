@@ -11,6 +11,32 @@ use Illuminate\Http\Request;
 
 class CompanyController extends Controller
 {
+    public function createTestCompany(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        // Check if user already has a test company (is_production = false)
+        $existing = Company::query()
+            ->where('user_id', $user->id)
+            ->where('is_production', false)
+            ->first();
+
+        if ($existing) {
+            return response()->json([
+                'status' => 'info',
+                'message' => 'Ya cuenta con una empresa de prueba (SUNAT Beta) configurada en su cuenta.',
+                'data' => $existing->load('user:id,name,email'),
+            ]);
+        }
+
+        $testCompany = Company::createTestCompanyForUser($user);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Empresa de prueba SUNAT (Beta) creada exitosamente.',
+            'data' => $testCompany->load('user:id,name,email'),
+        ], 201);
+    }
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();

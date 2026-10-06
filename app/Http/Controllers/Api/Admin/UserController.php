@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ApiKey;
+use App\Models\Company;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -47,7 +49,12 @@ class UserController extends Controller
             'password' => ['required', 'string', 'min:6'],
             'role' => ['nullable', 'string', Rule::in(['superadmin', 'developer', 'admin'])],
             'is_active' => ['nullable', 'boolean'],
+            'create_test_company' => ['nullable', 'boolean'],
         ]);
+
+        $shouldCreateTestCompany = $request->has('create_test_company')
+            ? filter_var($request->input('create_test_company'), FILTER_VALIDATE_BOOLEAN)
+            : true;
 
         $user = User::create([
             'name' => $data['name'],
@@ -57,10 +64,28 @@ class UserController extends Controller
             'is_active' => $data['is_active'] ?? true,
         ]);
 
+        // Generate automatic permanent API key for POS/ERP integration
+        $apiKey = ApiKey::create([
+            'user_id' => $user->id,
+            'name' => 'API Key Inicial (' . $user->name . ')',
+            'key' => ApiKey::generateKey(),
+            'is_active' => true,
+        ]);
+
+        // Provision SUNAT Beta test company if requested (active by default)
+        $testCompany = null;
+        if ($shouldCreateTestCompany) {
+            $testCompany = Company::createTestCompanyForUser($user);
+        }
+
         return response()->json([
             'status' => 'success',
-            'message' => 'Usuario creado exitosamente.',
-            'data' => $user->loadCount('companies'),
+            'message' => 'Usuario registrado exitosamente con API Key generada' . ($testCompany ? ' y empresa de prueba asociada.' : '.'),
+            'data' => [
+                'user' => $user->loadCount('companies'),
+                'api_key' => $apiKey->key,
+                'test_company' => $testCompany,
+            ],
         ], 201);
     }
 

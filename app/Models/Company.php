@@ -140,4 +140,56 @@ class Company extends Model
     {
         return $this->hasMany(WebhookDelivery::class);
     }
+
+    /**
+     * Create a standard SUNAT Beta test company cloned from master or defaults.
+     */
+    public static function createTestCompanyForUser(User $user): self
+    {
+        $template = self::query()->where('is_production', false)->first();
+
+        $attributes = [
+            'user_id' => $user->id,
+            'ruc' => $template?->ruc ?? '20000000001',
+            'business_name' => $template?->business_name ?? 'EMPRESA DE PRUEBA SUNAT S.A.C.',
+            'trademark_name' => $template?->trademark_name ?? 'FACTOS BETA TEST',
+            'address' => $template?->address ?? 'AV. LOS TESTERS 123 - URB. INDUSTRIAL',
+            'ubigeo' => $template?->ubigeo ?? '150101',
+            'department' => $template?->department ?? 'LIMA',
+            'province' => $template?->province ?? 'LIMA',
+            'district' => $template?->district ?? 'LIMA',
+            'establishment_code' => $template?->establishment_code ?? '0000',
+            'sol_user' => $template?->sol_user ?? 'MODDATOS',
+            'sol_pass' => $template?->sol_pass ?? 'moddatos',
+            'client_id' => $template?->client_id ?? 'test-85e5b0ae-255c-4891-a595-0b98c65c9854',
+            'client_secret' => $template?->client_secret ?? 'test-Hty/M6QshYvPgItX2P0+Kw==',
+            'certificate_path' => $template?->certificate_path ?? 'cert.pem',
+            'certificate_pass' => $template?->certificate_pass ?? '123456',
+            'webhook_url' => $template?->webhook_url ?? 'https://webhook.site/demo-factos-receipt',
+            'is_production' => false,
+            'is_active' => true,
+            'email_notifications_active' => $template?->email_notifications_active ?? true,
+            'company_copy_emails' => $template?->company_copy_emails ?? [
+                'contabilidad@empresa-prueba.pe',
+                'gerencia@empresa-prueba.pe',
+            ],
+            'send_to_client_email' => $template?->send_to_client_email ?? true,
+            'email_template_settings' => $template?->email_template_settings ?? [
+                'color' => '#1E40AF',
+                'footer_text' => 'Gracias por su preferencia - Comprobante electrónico emitido con Factos API',
+            ],
+            'mail_host' => $template?->mail_host ?? 'smtp.gmail.com',
+            'mail_port' => $template?->mail_port ?? 587,
+            'mail_username' => $template?->mail_username ?? 'facturacion.empresa.prueba@gmail.com',
+            'mail_encryption' => $template?->mail_encryption ?? 'tls',
+            'mail_from_address' => $template?->mail_from_address ?? 'facturacion.empresa.prueba@gmail.com',
+            'mail_from_name' => $template?->mail_from_name ?? 'Facturación - Empresa de Prueba S.A.C.',
+        ];
+
+        if ($template?->mail_password) {
+            $attributes['mail_password'] = $template->mail_password;
+        }
+
+        return self::create($attributes);
+    }
 }

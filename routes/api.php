@@ -52,6 +52,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::post('/api-keys/{api_key}/regenerate', [ApiKeyController::class, 'regenerate'])->name('api-keys.regenerate');
 
         // Companies (Tenants)
+        Route::post('/companies/test-company', [CompanyController::class, 'createTestCompany'])->name('companies.createTestCompany');
         Route::apiResource('companies', CompanyController::class);
         Route::get('/companies/{company}/webhooks', [CompanyController::class, 'webhooks'])->name('companies.webhooks');
 
