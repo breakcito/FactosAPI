@@ -129,7 +129,7 @@ class SystemSettingController extends Controller
 
         try {
             Mail::mailer($testMailerKey)->raw(
-                "¡Hola!\n\nEste es un correo de prueba enviado exitosamente desde el sistema gestor Factos.\nFecha y hora: " . now()->format('d/m/Y H:i:s') . "\nHost SMTP: {$host}:{$port}\nRemitente: {$fromName} <{$fromAddress}>",
+                "¡Hola!\n\nEste es un correo de prueba enviado exitosamente desde el sistema gestor Factos.\nFecha y hora: " . now()->setTimezone(config('app.timezone', 'America/Lima'))->format('d/m/Y h:i:s A') . "\nHost SMTP: {$host}:{$port}\nRemitente: {$fromName} <{$fromAddress}>",
                 function ($message) use ($recipient, $fromAddress, $fromName) {
                     $message->to($recipient)
                         ->from($fromAddress, $fromName)
