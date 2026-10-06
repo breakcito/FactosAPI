@@ -17,7 +17,8 @@ class InvoiceMail extends Mailable
     use Queueable, SerializesModels;
 
     public function __construct(
-        public Document $document
+        public Document $document,
+        public bool $useFacturadorSender = false
     ) {}
 
     public function envelope(): Envelope
@@ -26,16 +27,32 @@ class InvoiceMail extends Mailable
         $subject = $company->email_template_settings['subject']
             ?? "Comprobante Electrónico {$this->document->series}-{$this->document->correlative} - {$company->business_name}";
 
-        $fromAddress = $company->mail_from_address
-            ?: ($company->mail_username ?: config('mail.from.address'));
-        $fromName = $company->mail_from_name
-            ?: ($company->trademark_name ?: ($company->business_name ?: config('mail.from.name')));
+        if (! $this->useFacturadorSender && $company->hasCustomMailConfig()) {
+            $fromAddress = $company->mail_from_address
+                ?: ($company->mail_username ?: config('mail.from.address'));
+            $fromName = $company->mail_from_name
+                ?: ($company->trademark_name ?: ($company->business_name ?: config('mail.from.name')));
 
-        $from = new Address($fromAddress, $fromName);
+            $from = new Address($fromAddress, $fromName);
+            $replyTo = [$from];
+        } else {
+            // Envío realizado por el facturador (por defecto, fallback o notificación a la empresa)
+            $fromAddress = config('mail.from.address');
+            $fromName = $company->mail_from_name
+                ?: ($company->trademark_name ?: ($company->business_name ?: config('mail.from.name')));
+
+            $from = new Address($fromAddress, $fromName);
+
+            // Los clientes deben responder a la empresa emisora
+            $replyAddress = $company->mail_from_address
+                ?: ($company->mail_username ?: (! empty($company->company_copy_emails[0]) ? $company->company_copy_emails[0] : $fromAddress));
+
+            $replyTo = [new Address($replyAddress, $fromName)];
+        }
 
         return new Envelope(
             from: $from,
-            replyTo: [$from],
+            replyTo: $replyTo,
             subject: $subject,
         );
     }

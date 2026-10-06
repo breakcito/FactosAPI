@@ -34,9 +34,9 @@ class SendInvoiceEmailJob implements ShouldQueue
             return;
         }
 
-        $toEmail = null;
+        $clientEmail = null;
         if ($company->send_to_client_email && ! empty($this->document->client_email)) {
-            $toEmail = filter_var($this->document->client_email, FILTER_VALIDATE_EMAIL) ?: null;
+            $clientEmail = filter_var($this->document->client_email, FILTER_VALIDATE_EMAIL) ?: null;
         }
 
         $ccEmails = [];
@@ -48,55 +48,83 @@ class SendInvoiceEmailJob implements ShouldQueue
             }
         }
 
-        // If no client email, but copy emails exist, use first copy email as recipient
-        if (! $toEmail && ! empty($ccEmails)) {
-            $toEmail = array_shift($ccEmails);
-        }
-
-        if (! $toEmail) {
+        if (! $clientEmail && empty($ccEmails)) {
             Log::info("SendInvoiceEmailJob: No valid recipient found for document {$this->document->id}");
 
             return;
         }
 
-        try {
-            $mailer = $this->resolveMailer($company);
+        if ($clientEmail) {
+            $sent = false;
 
-            $pendingMail = $mailer->to($toEmail);
-            if (! empty($ccEmails)) {
-                $pendingMail->cc($ccEmails);
+            // Intentar con las credenciales SMTP de la empresa si las proporcionó
+            if ($company->hasCustomMailConfig()) {
+                try {
+                    $companyMailer = $this->resolveCompanyMailer($company);
+                    $pendingMail = $companyMailer->to($clientEmail);
+                    if (! empty($ccEmails)) {
+                        $pendingMail->cc($ccEmails);
+                    }
+
+                    $pendingMail->send(new InvoiceMail($this->document, useFacturadorSender: false));
+                    $sent = true;
+                } catch (Throwable $e) {
+                    Log::warning("SendInvoiceEmailJob: Falló el envío con credenciales de la empresa {$company->ruc} ({$e->getMessage()}). Reintentando con el correo del facturador...");
+                }
             }
 
-            $pendingMail->send(new InvoiceMail($this->document));
-        } catch (Throwable $e) {
-            Log::warning("Failed sending invoice email for document {$this->document->id}: {$e->getMessage()}");
+            // Si la empresa no proporcionó credenciales o falló el envío con las suyas, el facturador lo envía
+            if (! $sent) {
+                try {
+                    $facturadorMailer = Mail::mailer();
+                    $pendingMail = $facturadorMailer->to($clientEmail);
+                    if (! empty($ccEmails)) {
+                        $pendingMail->cc($ccEmails);
+                    }
+
+                    $pendingMail->send(new InvoiceMail($this->document, useFacturadorSender: true));
+                } catch (Throwable $e) {
+                    Log::error("SendInvoiceEmailJob: Falló el envío de correo con el facturador para el comprobante {$this->document->id}: {$e->getMessage()}");
+                }
+            }
+        } else {
+            // Solo hay correos de copia de la empresa (sin cliente):
+            // El correo del facturador se usa para enviar las notificaciones automáticas a la empresa emisora
+            $primaryCompanyEmail = array_shift($ccEmails);
+            try {
+                $facturadorMailer = Mail::mailer();
+                $pendingMail = $facturadorMailer->to($primaryCompanyEmail);
+                if (! empty($ccEmails)) {
+                    $pendingMail->cc($ccEmails);
+                }
+
+                $pendingMail->send(new InvoiceMail($this->document, useFacturadorSender: true));
+            } catch (Throwable $e) {
+                Log::error("SendInvoiceEmailJob: Falló el envío de notificación automática a la empresa para el comprobante {$this->document->id}: {$e->getMessage()}");
+            }
         }
     }
 
-    private function resolveMailer(Company $company): Mailer
+    private function resolveCompanyMailer(Company $company): Mailer
     {
-        if ($company->hasCustomMailConfig()) {
-            $mailerKey = "company_{$company->id}";
-            $encryption = strtolower((string) ($company->mail_encryption ?: 'tls'));
-            if ($encryption === 'none' || $encryption === 'null' || $encryption === '') {
-                $encryption = null;
-            }
-
-            config([
-                "mail.mailers.{$mailerKey}" => [
-                    'transport' => 'smtp',
-                    'host' => $company->mail_host ?: 'smtp.gmail.com',
-                    'port' => (int) ($company->mail_port ?: 587),
-                    'encryption' => $encryption,
-                    'username' => $company->mail_username,
-                    'password' => $company->mail_password,
-                    'timeout' => 15,
-                ],
-            ]);
-
-            return Mail::mailer($mailerKey);
+        $mailerKey = "company_{$company->id}";
+        $encryption = strtolower((string) ($company->mail_encryption ?: 'tls'));
+        if ($encryption === 'none' || $encryption === 'null' || $encryption === '') {
+            $encryption = null;
         }
 
-        return Mail::mailer();
+        config([
+            "mail.mailers.{$mailerKey}" => [
+                'transport' => 'smtp',
+                'host' => $company->mail_host ?: 'smtp.gmail.com',
+                'port' => (int) ($company->mail_port ?: 587),
+                'encryption' => $encryption,
+                'username' => $company->mail_username,
+                'password' => $company->mail_password,
+                'timeout' => 15,
+            ],
+        ]);
+
+        return Mail::mailer($mailerKey);
     }
 }

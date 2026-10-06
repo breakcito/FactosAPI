@@ -8,6 +8,7 @@ use App\Models\Despatch;
 use App\Models\Document;
 use App\Models\User;
 use App\Models\WebhookDelivery;
+use Illuminate\Contracts\Mail\Mailer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -254,4 +255,119 @@ test('user can configure Google SMTP credentials via API and password is encrypt
     $company->refresh();
     expect($company->mail_password)->toBe('secret-app-password');
     expect($company->hasCustomMailConfig())->toBeTrue();
+});
+
+test('SendInvoiceEmailJob sends via Facturador mailer when company has no custom credentials', function () {
+    Mail::fake();
+
+    $user = User::factory()->create();
+    $company = Company::factory()->create([
+        'user_id' => $user->id,
+        'business_name' => 'EMPRESA SIN SMTP S.A.C.',
+        'trademark_name' => 'MI NEGOCIO',
+        'email_notifications_active' => true,
+        'send_to_client_email' => true,
+        'company_copy_emails' => ['contacto@minegocio.pe'],
+        'mail_username' => null,
+        'mail_password' => null,
+    ]);
+
+    $document = Document::factory()->create([
+        'company_id' => $company->id,
+        'client_email' => 'cliente@destinatario.pe',
+        'status' => 'accepted',
+    ]);
+
+    expect($company->hasCustomMailConfig())->toBeFalse();
+
+    $job = new SendInvoiceEmailJob($document);
+    $job->handle();
+
+    Mail::assertSent(InvoiceMail::class, function ($mail) {
+        $envelope = $mail->envelope();
+
+        return $mail->hasTo('cliente@destinatario.pe')
+            && $mail->hasCc('contacto@minegocio.pe')
+            && $envelope->from->address === config('mail.from.address')
+            && $envelope->from->name === 'MI NEGOCIO'
+            && $envelope->replyTo[0]->address === 'contacto@minegocio.pe';
+    });
+});
+
+test('SendInvoiceEmailJob falls back to Facturador mailer if company custom SMTP fails', function () {
+    // We mock the dynamic company mailer to simulate failure, and assert fallback to default
+    $user = User::factory()->create();
+    $company = Company::factory()->create([
+        'user_id' => $user->id,
+        'business_name' => 'EMPRESA CON ERROR S.A.C.',
+        'trademark_name' => 'EMPRESA ERROR',
+        'email_notifications_active' => true,
+        'send_to_client_email' => true,
+        'company_copy_emails' => ['avisos@empresaerror.pe'],
+        'mail_username' => 'usuario@empresaerror.com',
+        'mail_password' => 'bad-password',
+    ]);
+
+    $document = Document::factory()->create([
+        'company_id' => $company->id,
+        'client_email' => 'cliente@comprador.pe',
+        'status' => 'accepted',
+    ]);
+
+    expect($company->hasCustomMailConfig())->toBeTrue();
+
+    // Mock Mail::mailer("company_{$company->id}") to throw an exception on send
+    $failingMailer = Mockery::mock(Mailer::class);
+    $failingPendingMail = Mockery::mock();
+    $failingPendingMail->shouldReceive('cc')->andReturnSelf();
+    $failingPendingMail->shouldReceive('send')->andThrow(new Exception('SMTP 535 Authentication Failed: bad app password'));
+    $failingMailer->shouldReceive('to')->with('cliente@comprador.pe')->andReturn($failingPendingMail);
+
+    // Mock the default facturador mailer to succeed
+    $facturadorMailer = Mockery::mock(Mailer::class);
+    $facturadorPendingMail = Mockery::mock();
+    $facturadorPendingMail->shouldReceive('cc')->andReturnSelf();
+    $facturadorPendingMail->shouldReceive('send')->once()->andReturnNull();
+    $facturadorMailer->shouldReceive('to')->with('cliente@comprador.pe')->once()->andReturn($facturadorPendingMail);
+
+    Mail::shouldReceive('mailer')
+        ->with("company_{$company->id}")
+        ->andReturn($failingMailer);
+
+    Mail::shouldReceive('mailer')
+        ->withNoArgs()
+        ->andReturn($facturadorMailer);
+
+    $job = new SendInvoiceEmailJob($document);
+    $job->handle();
+});
+
+test('SendInvoiceEmailJob sends automatic notification to company using Facturador mailer when no client email is present', function () {
+    Mail::fake();
+
+    $user = User::factory()->create();
+    $company = Company::factory()->create([
+        'user_id' => $user->id,
+        'business_name' => 'EMPRESA EMISORA S.A.C.',
+        'email_notifications_active' => true,
+        'send_to_client_email' => false,
+        'company_copy_emails' => ['gerencia@empresa.com', 'contabilidad@empresa.com'],
+    ]);
+
+    $document = Document::factory()->create([
+        'company_id' => $company->id,
+        'client_email' => null,
+        'status' => 'accepted',
+    ]);
+
+    $job = new SendInvoiceEmailJob($document);
+    $job->handle();
+
+    Mail::assertSent(InvoiceMail::class, function ($mail) {
+        $envelope = $mail->envelope();
+
+        return $mail->hasTo('gerencia@empresa.com')
+            && $mail->hasCc('contabilidad@empresa.com')
+            && $envelope->from->address === config('mail.from.address');
+    });
 });
