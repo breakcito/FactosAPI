@@ -25,7 +25,6 @@ Route::get('/health', HealthController::class)->name('api.health');
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     // Auth
     Route::prefix('auth')->name('auth.')->group(function (): void {
-        Route::post('/register', RegisterController::class)->name('register');
         Route::post('/login', LoginController::class)->name('login');
 
         Route::middleware(AuthenticateJwtOrApiKey::class)->group(function (): void {

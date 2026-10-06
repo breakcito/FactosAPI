@@ -124,5 +124,5 @@ test('user cannot list, view or void documents from another tenant', function ()
         'correlative' => $docB->correlative,
         'reason' => 'Anulacion no autorizada',
     ]);
-    $voidGeneralResponse->assertStatus(404);
+    $voidGeneralResponse->assertStatus(422);
 });

@@ -17,7 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
         apiPrefix: 'api',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->replace(
+            \Illuminate\Http\Middleware\HandleCors::class,
+            \App\Http\Middleware\HandleCorsAndClientValidation::class
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

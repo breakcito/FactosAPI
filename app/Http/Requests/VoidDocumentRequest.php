@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class VoidDocumentRequest extends FormRequest
 {
@@ -20,7 +21,16 @@ class VoidDocumentRequest extends FormRequest
 
         return [
             'reason' => ['required', 'string', 'min:3', 'max:250'],
-            'company_id' => [$hasRouteDoc ? 'nullable' : 'required', 'uuid', 'exists:companies,id'],
+            'company_id' => [
+                $hasRouteDoc ? 'nullable' : 'required',
+                'uuid',
+                Rule::exists('companies', 'id')
+                    ->whereNull('deleted_at')
+                    ->where('is_active', true)
+                    ->when(!$this->user()?->isSuperAdmin(), function ($query) {
+                        return $query->where('user_id', $this->user()?->id);
+                    }),
+            ],
             'type_code' => [$hasRouteDoc ? 'nullable' : 'required', 'string', 'in:01,03,07,08'],
             'series' => [$hasRouteDoc ? 'nullable' : 'required', 'string', 'size:4'],
             'correlative' => [$hasRouteDoc ? 'nullable' : 'required', 'integer', 'min:1'],
@@ -35,6 +45,7 @@ class VoidDocumentRequest extends FormRequest
         return [
             'reason.required' => 'El motivo de anulación es obligatorio.',
             'company_id.required' => 'El identificador de la empresa emisora es obligatorio.',
+            'company_id.exists' => 'La empresa emisora especificada no existe, está inactiva o no pertenece a su usuario.',
             'series.required' => 'La serie del comprobante a anular es obligatoria.',
             'correlative.required' => 'El correlativo del comprobante a anular es obligatorio.',
         ];

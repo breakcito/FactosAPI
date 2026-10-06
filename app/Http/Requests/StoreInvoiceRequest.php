@@ -32,7 +32,12 @@ class StoreInvoiceRequest extends FormRequest
             'company_id' => [
                 'required',
                 'uuid',
-                Rule::exists('companies', 'id')->where('user_id', $this->user()?->id),
+                Rule::exists('companies', 'id')
+                    ->whereNull('deleted_at')
+                    ->where('is_active', true)
+                    ->when(!$this->user()?->isSuperAdmin(), function ($query) {
+                        return $query->where('user_id', $this->user()?->id);
+                    }),
             ],
             'type_code' => ['nullable', 'string', 'in:01,03,07,08'],
             'operation_type' => ['nullable', 'string', 'size:4'],

@@ -14,7 +14,7 @@ class WebhookController extends Controller
     {
         $webhook->loadMissing(['document', 'despatch', 'company']);
 
-        abort_if($webhook->company->user_id !== $request->user()->id, 403, 'No tiene autorización para reintentar este webhook.');
+        abort_if(!$request->user()->isSuperAdmin() && $webhook->company->user_id !== $request->user()->id, 403, 'No tiene autorización para reintentar este webhook.');
 
         $target = $webhook->document ?? $webhook->despatch;
 

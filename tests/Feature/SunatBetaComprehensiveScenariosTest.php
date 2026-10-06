@@ -27,6 +27,8 @@ function getSeededSunatBetaCompany(): array
         [
             'name' => 'Administrador Factos',
             'password' => bcrypt('password'),
+            'role' => 'superadmin',
+            'is_active' => true,
         ]
     );
 

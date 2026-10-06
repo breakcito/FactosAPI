@@ -5,20 +5,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-test('user can register via v1 endpoint', function () {
+test('public registration is disabled and returns 404', function () {
     $response = $this->postJson('/api/v1/auth/register', [
         'name' => 'Factos Dev',
         'email' => 'dev@factos.pe',
         'password' => 'secret12345!',
     ]);
 
-    $response->assertStatus(201)
-        ->assertJsonStructure([
-            'token',
-            'user' => ['id', 'name', 'email'],
-        ]);
-
-    $this->assertDatabaseHas('users', ['email' => 'dev@factos.pe']);
+    $response->assertStatus(404);
 });
 
 test('user can login and obtain bearer token', function () {
