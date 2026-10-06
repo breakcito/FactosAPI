@@ -14,15 +14,15 @@ return new class extends Migration
         Schema::create('webhook_deliveries', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('company_id')->constrained('companies')->cascadeOnDelete();
-            $table->foreignUuid('document_id')->constrained('documents')->cascadeOnDelete();
+            $table->foreignUuid('document_id')->nullable()->constrained('documents')->nullOnDelete();
+            $table->foreignUuid('despatch_id')->nullable()->constrained('despatches')->nullOnDelete();
             $table->string('event', 50);
             $table->json('payload');
-            $table->unsignedSmallInteger('response_code')->nullable();
+            $table->smallInteger('response_code')->nullable();
             $table->text('response_body')->nullable();
-            $table->string('status', 20)->default('pending')->index(); // pending, delivered, failed
-            $table->unsignedInteger('attempts')->default(0);
-            $table->timestamp('created_at')->useCurrent();
-            $table->timestamp('updated_at')->nullable();
+            $table->unsignedTinyInteger('attempts')->default(0);
+            $table->string('status', 20)->default('pending')->index();
+            $table->timestamps();
         });
     }
 

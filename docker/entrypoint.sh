@@ -26,9 +26,15 @@ if [ "$APP_ENV" = "production" ]; then
 fi
 
 # Run database migrations gracefully if enabled
-if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
+if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
     echo "Running database migrations..."
     php /var/www/html/artisan migrate --force || echo "Migrations skipped or failed, continuing..."
+fi
+
+# Run database seeder gracefully if enabled (e.g. for dev/staging environments)
+if [ "${RUN_SEEDER:-false}" = "true" ]; then
+    echo "Running database seeder..."
+    php /var/www/html/artisan db:seed --force || echo "Seeder failed or skipped, continuing..."
 fi
 
 echo "FactosAPI ready. Starting supervisord..."

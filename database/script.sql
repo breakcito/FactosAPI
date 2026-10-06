@@ -415,7 +415,7 @@ CREATE TABLE
     `despatch_id` char(36) DEFAULT NULL,
     `event` varchar(50) NOT NULL,
     `payload` json NOT NULL,
-    `response_status` smallint DEFAULT NULL,
+    `response_code` smallint DEFAULT NULL,
     `response_body` text,
     `attempts` tinyint unsigned NOT NULL DEFAULT '0',
     `status` varchar(20) NOT NULL DEFAULT 'pending',
