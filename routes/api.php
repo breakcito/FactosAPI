@@ -87,10 +87,12 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         // Webhooks retry
         Route::post('/webhooks/{webhook}/retry', [WebhookController::class, 'retry'])->name('webhooks.retry');
 
+        // Dashboard (Accessible by Super Admin and Developers with scoped metrics)
+        Route::get('/dashboard', DashboardController::class)->name('dashboard');
+        Route::get('/admin/dashboard', DashboardController::class)->name('admin.dashboard');
+
         // Super Admin only routes
         Route::prefix('admin')->name('admin.')->middleware(EnsureSuperAdmin::class)->group(function (): void {
-            Route::get('/dashboard', DashboardController::class)->name('dashboard');
-
             // User & Developer management
             Route::apiResource('users', UserController::class);
 
