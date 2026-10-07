@@ -50,11 +50,11 @@ class DocumentItem extends Model
     protected function casts(): array
     {
         return [
-            'quantity' => 'decimal:4',
-            'unit_value' => 'decimal:4',
-            'unit_price' => 'decimal:4',
-            'igv_amount' => 'decimal:2',
-            'total' => 'decimal:2',
+            'quantity' => 'float',
+            'unit_value' => 'float',
+            'unit_price' => 'float',
+            'igv_amount' => 'float',
+            'total' => 'float',
             'attributes' => 'array',
         ];
     }
