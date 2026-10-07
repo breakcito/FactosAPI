@@ -28,6 +28,9 @@ class StoreDespatchRequest extends FormRequest
                         return $query->where('user_id', $this->user()?->id);
                     }),
             ],
+            'is_test' => ['nullable', 'boolean'],
+            'test_mode' => ['nullable', 'boolean'],
+            'is_production' => ['nullable', 'boolean'],
             'type_code' => ['nullable', 'string', 'in:09,31'],
             'external_id' => ['nullable', 'string', 'max:100'],
             'series' => ['required', 'string', 'size:4', 'regex:/^[TV][A-Z0-9]{3}$/i'],

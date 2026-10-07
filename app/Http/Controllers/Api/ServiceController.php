@@ -65,8 +65,11 @@ class ServiceController extends Controller
 
     public function exchangeRate(Request $request): JsonResponse
     {
-        $source = $request->query('source', 'sunat');
-        $date = $request->query('date', now()->toDateString());
+        $source = strtolower((string) ($request->query('source', 'sunat') ?: 'sunat'));
+        if (!in_array($source, ['sunat', 'sbs'], true)) {
+            $source = 'sunat';
+        }
+        $date = (string) ($request->query('date') ?: now()->toDateString());
 
         try {
             $data = $this->apisPeruService->getExchangeRate($source, $date);

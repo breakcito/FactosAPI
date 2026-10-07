@@ -57,6 +57,9 @@ class PdfGeneratorService
         $montoLetras = NumeroALetras::convert($document->total, $document->currency);
         $formaPago = ($document->due_date && $document->due_date->gt($document->issue_date)) ? 'CRÉDITO' : 'CONTADO';
         $correlativePadded = str_pad((string) $document->correlative, 8, '0', STR_PAD_LEFT);
+        $testBanner = !$document->is_production
+            ? "<div style='background-color: #fee2e2; border: 1px dashed #ef4444; color: #b91c1c; text-align: center; padding: 6px; font-weight: bold; font-size: 11px; margin-bottom: 12px; border-radius: 4px;'>COMPROBANTE DE PRUEBA / BETA — SIN VALOR TRIBUTARIO</div>"
+            : '';
 
         $itemsRows = '';
         foreach ($document->items as $item) {
@@ -110,6 +113,7 @@ class PdfGeneratorService
             </style>
         </head>
         <body>
+            {$testBanner}
             <table class='header-table'>
                 <tr>
                     <td class='company-info'>
@@ -323,6 +327,9 @@ class PdfGeneratorService
         $transporteInfo = $despatch->isPublicTransport()
             ? "<strong>Transportista:</strong> {$despatch->carrier_name} ({$despatch->carrier_doc_number})<br><strong>MTC:</strong> {$despatch->carrier_mtc}"
             : "<strong>Vehículo:</strong> {$despatch->vehicle_plate}<br><strong>Conductor:</strong> {$despatch->driver_name} (Licencia: {$despatch->driver_license})";
+        $testBanner = !$despatch->is_production
+            ? "<div style='background-color: #fee2e2; border: 1px dashed #ef4444; color: #b91c1c; text-align: center; padding: 6px; font-weight: bold; font-size: 11px; margin-bottom: 12px; border-radius: 4px;'>GUÍA DE REMISIÓN DE PRUEBA / BETA — SIN VALOR TRIBUTARIO</div>"
+            : '';
 
         return "
         <!DOCTYPE html>
@@ -341,6 +348,7 @@ class PdfGeneratorService
             </style>
         </head>
         <body>
+            {$testBanner}
             <table style='margin-bottom: 15px;'>
                 <tr>
                     <td style='width: 60%; vertical-align: top;'>

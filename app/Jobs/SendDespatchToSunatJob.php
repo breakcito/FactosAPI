@@ -53,7 +53,9 @@ class SendDespatchToSunatJob implements ShouldQueue
         try {
             // If already has ticket, verify ticket status
             if ($this->despatch->ticket) {
-                $statusResult = $greenterService->checkDespatchTicketStatus($company, $this->despatch->ticket);
+                $statusResult = ($this->despatch->is_production === $company->is_production)
+                    ? $greenterService->checkDespatchTicketStatus($company, $this->despatch->ticket)
+                    : $greenterService->checkDespatchTicketStatus($company, $this->despatch->ticket, $this->despatch->is_production);
 
                 if ($statusResult->isSuccess()) {
                     $cdrZip = $statusResult->getCdrZip();
@@ -103,7 +105,9 @@ class SendDespatchToSunatJob implements ShouldQueue
                     $this->despatch->save();
 
                     // Immediately query ticket status
-                    $statusResult = $greenterService->checkDespatchTicketStatus($company, $ticket);
+                    $statusResult = ($this->despatch->is_production === $company->is_production)
+                        ? $greenterService->checkDespatchTicketStatus($company, $ticket)
+                        : $greenterService->checkDespatchTicketStatus($company, $ticket, $this->despatch->is_production);
 
                     if ($statusResult->isSuccess()) {
                         $cdrZip = $statusResult->getCdrZip();

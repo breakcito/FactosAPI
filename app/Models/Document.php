@@ -72,6 +72,20 @@ class Document extends Model
     /** @use HasFactory<DocumentFactory> */
     use HasFactory, HasUuids, SoftDeletes;
 
+    protected static function booted(): void
+    {
+        static::creating(function (Document $document): void {
+            if ($document->company_id) {
+                $company = $document->relationLoaded('company') ? $document->company : Company::find($document->company_id);
+                if ($company && !$company->is_production) {
+                    $document->is_production = false;
+                } elseif ($document->is_production === null && $company) {
+                    $document->is_production = (bool) $company->is_production;
+                }
+            }
+        });
+    }
+
     protected $fillable = [
         'company_id',
         'external_id',
@@ -108,6 +122,7 @@ class Document extends Model
         'total_icbper',
         'total_discount',
         'total',
+        'is_production',
         'status',
         'sunat_code',
         'sunat_description',
@@ -133,6 +148,7 @@ class Document extends Model
     protected function casts(): array
     {
         return [
+            'is_production' => 'boolean',
             'issue_date' => 'date',
             'due_date' => 'date',
             'next_retry_at' => 'datetime',
@@ -157,6 +173,16 @@ class Document extends Model
             'note_data' => 'array',
             'extra_fields' => 'array',
         ];
+    }
+
+    public function isProduction(): bool
+    {
+        return (bool) $this->is_production;
+    }
+
+    public function isTest(): bool
+    {
+        return !$this->is_production;
     }
 
     /**

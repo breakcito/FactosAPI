@@ -64,7 +64,9 @@ class VoidDocumentJob implements ShouldQueue
 
         // Check ticket status immediately
         try {
-            $statusResult = $greenterService->checkTicketStatus($company, $ticket);
+            $statusResult = ($this->document->is_production === $company->is_production)
+                ? $greenterService->checkTicketStatus($company, $ticket)
+                : $greenterService->checkTicketStatus($company, $ticket, $this->document->is_production);
 
             if ($statusResult->isSuccess()) {
                 $cdrResponse = $statusResult->getCdrResponse();

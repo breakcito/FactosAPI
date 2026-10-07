@@ -39,6 +39,9 @@ class StoreInvoiceRequest extends FormRequest
                         return $query->where('user_id', $this->user()?->id);
                     }),
             ],
+            'is_test' => ['nullable', 'boolean'],
+            'test_mode' => ['nullable', 'boolean'],
+            'is_production' => ['nullable', 'boolean'],
             'type_code' => ['nullable', 'string', 'in:01,03,07,08'],
             'operation_type' => ['nullable', 'string', 'size:4'],
             'establishment_code' => ['nullable', 'string', 'size:4'],

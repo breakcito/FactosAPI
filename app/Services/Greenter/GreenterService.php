@@ -35,7 +35,7 @@ class GreenterService
         $this->voidedBuilder = $voidedBuilder ?? new GreenterVoidedBuilder;
     }
 
-    public function getSee(Company $company): See
+    public function getSee(Company $company, ?bool $isProduction = null): See
     {
         $see = new See;
         $cacheDir = storage_path('framework/cache/greenter');
@@ -47,16 +47,28 @@ class GreenterService
         $certPem = $this->certificateService->getCertificatePem($company);
         $see->setCertificate($certPem);
 
-        $endpoint = $company->is_production
+        $isProd = ($isProduction !== null) ? ($company->is_production && $isProduction) : (bool) $company->is_production;
+
+        $endpoint = $isProd
             ? SunatEndpoints::FE_PRODUCCION
             : SunatEndpoints::FE_BETA;
         $see->setService($endpoint);
 
-        $see->setClaveSOL(
-            $company->ruc,
-            $company->sol_user,
-            $company->sol_pass
-        );
+        if ($isProd) {
+            $see->setClaveSOL(
+                $company->ruc,
+                $company->sol_user,
+                $company->sol_pass
+            );
+        } else {
+            $user = ($company->is_production || empty($company->sol_user)) ? 'MODDATOS' : $company->sol_user;
+            $pass = ($company->is_production || empty($company->sol_pass)) ? 'moddatos' : $company->sol_pass;
+            $see->setClaveSOL(
+                $company->ruc,
+                $user,
+                $pass
+            );
+        }
 
         return $see;
     }
@@ -72,7 +84,7 @@ class GreenterService
             ? $this->noteBuilder->build($document)
             : $this->invoiceBuilder->build($document);
 
-        $see = $this->getSee($document->company);
+        $see = $this->getSee($document->company, $document->is_production);
         $xml = (string) $see->getXmlSigned($saleModel);
 
         $xmlUtils = new XmlUtils;
@@ -98,7 +110,7 @@ class GreenterService
     {
         $greenterDespatch = $this->despatchBuilder->build($despatch);
 
-        $see = $this->getSee($despatch->company);
+        $see = $this->getSee($despatch->company, $despatch->is_production);
         $xml = (string) $see->getXmlSigned($greenterDespatch);
 
         $xmlUtils = new XmlUtils;
@@ -121,16 +133,28 @@ class GreenterService
     public function sendSignedXml(Document|Despatch $model, string $signedXml): BillResult
     {
         $company = $model->company;
-        $endpoint = $company->is_production
+        $isProd = $company->is_production && $model->is_production;
+
+        $endpoint = $isProd
             ? ($model instanceof Despatch ? SunatEndpoints::GUIA_PRODUCCION : SunatEndpoints::FE_PRODUCCION)
             : ($model instanceof Despatch ? SunatEndpoints::GUIA_BETA : SunatEndpoints::FE_BETA);
 
         $soapClient = new SunatSoapClient;
         $soapClient->setService($endpoint);
-        $soapClient->setCredentials(
-            $company->ruc . $company->sol_user,
-            $company->sol_pass
-        );
+
+        if ($isProd) {
+            $soapClient->setCredentials(
+                $company->ruc . $company->sol_user,
+                $company->sol_pass
+            );
+        } else {
+            $user = ($company->is_production || empty($company->sol_user)) ? 'MODDATOS' : $company->sol_user;
+            $pass = ($company->is_production || empty($company->sol_pass)) ? 'moddatos' : $company->sol_pass;
+            $soapClient->setCredentials(
+                $company->ruc . $user,
+                $pass
+            );
+        }
 
         $sender = new BillSender;
         $sender->setClient($soapClient);
@@ -143,9 +167,11 @@ class GreenterService
         return $result;
     }
 
-    public function getSeeApi(Company $company): Api
+    public function getSeeApi(Company $company, ?bool $isProduction = null): Api
     {
-        $endpoints = $company->is_production
+        $isProd = ($isProduction !== null) ? ($company->is_production && $isProduction) : (bool) $company->is_production;
+
+        $endpoints = $isProd
             ? [
                 'auth' => 'https://api-seguridad.sunat.gob.pe/v1',
                 'cpe' => 'https://api-cpe.sunat.gob.pe/v1',
@@ -159,14 +185,31 @@ class GreenterService
 
         $certPem = $this->certificateService->getCertificatePem($company);
         $api->setCertificate($certPem);
-        $api->setClaveSOL(
-            $company->ruc,
-            $company->sol_user,
-            $company->sol_pass
-        );
 
-        $clientId = $company->client_id ?: 'test-85e5b0ae-255c-4891-a595-0b98c65c9854';
-        $clientSecret = $company->client_secret ?: 'test-Hty/M6QshYvPgItX2P0+Kw==';
+        if ($isProd) {
+            $api->setClaveSOL(
+                $company->ruc,
+                $company->sol_user,
+                $company->sol_pass
+            );
+            $clientId = $company->client_id ?: 'test-85e5b0ae-255c-4891-a595-0b98c65c9854';
+            $clientSecret = $company->client_secret ?: 'test-Hty/M6QshYvPgItX2P0+Kw==';
+        } else {
+            $user = ($company->is_production || empty($company->sol_user)) ? 'MODDATOS' : $company->sol_user;
+            $pass = ($company->is_production || empty($company->sol_pass)) ? 'moddatos' : $company->sol_pass;
+            $api->setClaveSOL(
+                $company->ruc,
+                $user,
+                $pass
+            );
+            $clientId = ($company->is_production || empty($company->client_id))
+                ? 'test-85e5b0ae-255c-4891-a595-0b98c65c9854'
+                : $company->client_id;
+            $clientSecret = ($company->is_production || empty($company->client_secret))
+                ? 'test-Hty/M6QshYvPgItX2P0+Kw=='
+                : $company->client_secret;
+        }
+
         $api->setApiCredentials($clientId, $clientSecret);
 
         return $api;
@@ -177,7 +220,7 @@ class GreenterService
      */
     public function sendSignedDespatchXml(Despatch $despatch, string $signedXml): SummaryResult
     {
-        $api = $this->getSeeApi($despatch->company);
+        $api = $this->getSeeApi($despatch->company, $despatch->is_production);
         $filename = $despatch->getSunatFileName();
 
         /** @var SummaryResult $result */
@@ -189,9 +232,9 @@ class GreenterService
     /**
      * Check status of a ticket issued by SUNAT for Despatch via GRE REST API.
      */
-    public function checkDespatchTicketStatus(Company $company, string $ticket): StatusResult
+    public function checkDespatchTicketStatus(Company $company, string $ticket, ?bool $isProduction = null): StatusResult
     {
-        $api = $this->getSeeApi($company);
+        $api = $this->getSeeApi($company, $isProduction);
 
         return $api->getStatus($ticket);
     }
@@ -204,7 +247,7 @@ class GreenterService
     public function sendVoiding(Document $document, string $reason, int $correlative): array
     {
         $company = $document->company;
-        $see = $this->getSee($company);
+        $see = $this->getSee($company, $document->is_production);
 
         $isFacturaOrNote = $document->isInvoice() || ($document->series[0] === 'F');
 
@@ -243,18 +286,30 @@ class GreenterService
     /**
      * Check status of a ticket issued by SUNAT (for RA, RC, or Despatch).
      */
-    public function checkTicketStatus(Company $company, string $ticket): StatusResult
+    public function checkTicketStatus(Company $company, string $ticket, ?bool $isProduction = null): StatusResult
     {
-        $endpoint = $company->is_production
+        $isProd = ($isProduction !== null) ? ($company->is_production && $isProduction) : (bool) $company->is_production;
+
+        $endpoint = $isProd
             ? SunatEndpoints::FE_PRODUCCION
             : SunatEndpoints::FE_BETA;
 
         $soapClient = new SunatSoapClient;
         $soapClient->setService($endpoint);
-        $soapClient->setCredentials(
-            $company->ruc . $company->sol_user,
-            $company->sol_pass
-        );
+
+        if ($isProd) {
+            $soapClient->setCredentials(
+                $company->ruc . $company->sol_user,
+                $company->sol_pass
+            );
+        } else {
+            $user = ($company->is_production || empty($company->sol_user)) ? 'MODDATOS' : $company->sol_user;
+            $pass = ($company->is_production || empty($company->sol_pass)) ? 'moddatos' : $company->sol_pass;
+            $soapClient->setCredentials(
+                $company->ruc . $user,
+                $pass
+            );
+        }
 
         $sender = new ExtService;
         $sender->setClient($soapClient);

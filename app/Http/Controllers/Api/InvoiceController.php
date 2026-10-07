@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreInvoiceRequest;
 use App\Jobs\ProcessDocumentJob;
+use App\Models\Company;
 use App\Models\Document;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -17,13 +18,18 @@ class InvoiceController extends Controller
         $series = strtoupper($validated['series']);
         $typeCode = $validated['type_code'] ?? $request->determineTypeCode();
 
+        $company = Company::findOrFail($validated['company_id']);
+        $wantsTest = (bool) ($validated['is_test'] ?? $validated['test_mode'] ?? (isset($validated['is_production']) ? !$validated['is_production'] : false));
+        $isProduction = (bool) ($company->is_production && !$wantsTest);
+
         $totals = $validated['totals'];
         $client = $validated['client'];
 
-        $document = DB::transaction(function () use ($validated, $series, $typeCode, $totals, $client) {
+        $document = DB::transaction(function () use ($validated, $series, $typeCode, $totals, $client, $isProduction) {
             $doc = Document::create([
                 'company_id' => $validated['company_id'],
                 'external_id' => $validated['external_id'] ?? null,
+                'is_production' => $isProduction,
                 'type_code' => $typeCode,
                 'operation_type' => $validated['operation_type'] ?? '0101',
                 'establishment_code' => $validated['establishment_code'] ?? '0000',
@@ -90,6 +96,8 @@ class InvoiceController extends Controller
                 'document' => $document->getDocumentNumber(),
                 'type_code' => $document->type_code,
                 'status' => 'pending',
+                'is_production' => (bool) $document->is_production,
+                'is_test' => !$document->is_production,
             ],
         ], 202);
     }

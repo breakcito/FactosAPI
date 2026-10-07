@@ -50,6 +50,14 @@ class DocumentController extends Controller
             $query->where('status', $request->query('status'));
         }
 
+        if ($request->has('is_production')) {
+            $query->where('is_production', $request->boolean('is_production'));
+        }
+
+        if ($request->has('is_test')) {
+            $query->where('is_production', !$request->boolean('is_test'));
+        }
+
         if ($request->filled('date_from')) {
             $query->whereDate('issue_date', '>=', $request->query('date_from'));
         }
@@ -92,6 +100,8 @@ class DocumentController extends Controller
                 'correlative' => $document->correlative,
                 'document_number' => $document->getDocumentNumber(),
                 'status' => $document->status,
+                'is_production' => (bool) $document->is_production,
+                'is_test' => !$document->is_production,
                 'issue_date' => $document->issue_date->toDateString(),
                 'issue_time' => $document->issue_time,
                 'due_date' => $document->due_date?->toDateString(),

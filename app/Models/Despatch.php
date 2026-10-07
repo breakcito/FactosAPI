@@ -80,6 +80,20 @@ class Despatch extends Model
     /** @use HasFactory<DespatchFactory> */
     use HasFactory, HasUuids, SoftDeletes;
 
+    protected static function booted(): void
+    {
+        static::creating(function (Despatch $despatch): void {
+            if ($despatch->company_id) {
+                $company = $despatch->relationLoaded('company') ? $despatch->company : Company::find($despatch->company_id);
+                if ($company && !$company->is_production) {
+                    $despatch->is_production = false;
+                } elseif ($despatch->is_production === null && $company) {
+                    $despatch->is_production = (bool) $company->is_production;
+                }
+            }
+        });
+    }
+
     protected $fillable = [
         'company_id',
         'external_id',
@@ -97,6 +111,7 @@ class Despatch extends Model
         'total_weight',
         'weight_unit',
         'packages_count',
+        'is_production',
         'recipient_doc_type',
         'recipient_doc_number',
         'recipient_name',
@@ -144,6 +159,7 @@ class Despatch extends Model
     protected function casts(): array
     {
         return [
+            'is_production' => 'boolean',
             'issue_date' => 'date',
             'transfer_date' => 'date',
             'delivery_date' => 'date',
@@ -156,6 +172,16 @@ class Despatch extends Model
             'sunat_notes' => 'array',
             'related_documents' => 'array',
         ];
+    }
+
+    public function isProduction(): bool
+    {
+        return (bool) $this->is_production;
+    }
+
+    public function isTest(): bool
+    {
+        return !$this->is_production;
     }
 
     public function getDocumentNumber(): string

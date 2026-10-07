@@ -97,6 +97,39 @@ test('services endpoint resolves exchange rate', function () {
         ]);
 });
 
+test('services endpoint resolves SBS exchange rate', function () {
+    $user = User::factory()->create();
+
+    Http::fake([
+        'https://tipocambio.apisperu.com/api/v1/sbs*' => Http::response([
+            'success' => true,
+            'date' => '2026-09-25',
+            'source' => 'SBS',
+            'rates' => [
+                'USD' => [
+                    'name' => 'Dólar de N.A.',
+                    'buy' => '3.3750',
+                    'sell' => '3.3820',
+                ],
+            ],
+        ], 200),
+    ]);
+
+    $response = $this->actingAs($user, 'sanctum')->getJson('/api/v1/services/exchange-rate?source=sbs&date=2026-09-25');
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'status' => 'success',
+            'data' => [
+                'date' => '2026-09-25',
+                'source' => 'SBS',
+                'currency' => 'USD',
+                'compra' => 3.375,
+                'venta' => 3.382,
+            ],
+        ]);
+});
+
 test('services endpoint accepts RUC starting with 15 and 17', function () {
     $user = User::factory()->create();
 

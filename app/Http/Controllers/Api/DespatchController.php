@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDespatchRequest;
 use App\Jobs\ProcessDespatchJob;
 use App\Jobs\SendWebhookJob;
+use App\Models\Company;
 use App\Models\Despatch;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -48,6 +49,14 @@ class DespatchController extends Controller
             $query->where('status', $request->query('status'));
         }
 
+        if ($request->has('is_production')) {
+            $query->where('is_production', $request->boolean('is_production'));
+        }
+
+        if ($request->has('is_test')) {
+            $query->where('is_production', !$request->boolean('is_test'));
+        }
+
         if ($request->filled('date_from')) {
             $query->whereDate('issue_date', '>=', $request->query('date_from'));
         }
@@ -68,6 +77,10 @@ class DespatchController extends Controller
     {
         $validated = $request->validated();
         $series = strtoupper($validated['series']);
+        $company = Company::findOrFail($validated['company_id']);
+        $wantsTest = (bool) ($validated['is_test'] ?? $validated['test_mode'] ?? (isset($validated['is_production']) ? !$validated['is_production'] : false));
+        $isProduction = (bool) ($company->is_production && !$wantsTest);
+
         $recipient = $validated['recipient'];
         $origin = $validated['origin'];
         $destination = $validated['destination'];
@@ -75,10 +88,11 @@ class DespatchController extends Controller
         $driver = $validated['driver'] ?? [];
         $vehicle = $validated['vehicle'] ?? [];
 
-        $despatch = DB::transaction(function () use ($validated, $series, $recipient, $origin, $destination, $carrier, $driver, $vehicle) {
+        $despatch = DB::transaction(function () use ($validated, $series, $recipient, $origin, $destination, $carrier, $driver, $vehicle, $isProduction) {
             $desp = Despatch::create([
                 'company_id' => $validated['company_id'],
                 'external_id' => $validated['external_id'] ?? null,
+                'is_production' => $isProduction,
                 'type_code' => $validated['type_code'] ?? '09',
                 'series' => $series,
                 'correlative' => $validated['correlative'],
@@ -139,6 +153,8 @@ class DespatchController extends Controller
                 'document' => $despatch->getDocumentNumber(),
                 'type_code' => $despatch->type_code,
                 'status' => 'pending',
+                'is_production' => (bool) $despatch->is_production,
+                'is_test' => !$despatch->is_production,
             ],
         ], 202);
     }
@@ -161,6 +177,8 @@ class DespatchController extends Controller
                 'correlative' => $despatch->correlative,
                 'document_number' => $despatch->getDocumentNumber(),
                 'status' => $despatch->status,
+                'is_production' => (bool) $despatch->is_production,
+                'is_test' => !$despatch->is_production,
                 'issue_date' => $despatch->issue_date->toDateString(),
                 'issue_time' => $despatch->issue_time,
                 'transfer_date' => $despatch->transfer_date->toDateString(),

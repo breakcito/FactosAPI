@@ -118,8 +118,8 @@ class ApisPeruService
             $json = $response->json();
             $rates = $json['rates']['USD'] ?? null;
 
-            $compra = $rates ? (float) ($rates['buy'] ?? 0) : 0.00;
-            $venta = $rates ? (float) ($rates['sell'] ?? 0) : 0.00;
+            $compra = $rates ? (float) ($rates['buy'] ?? 0) : (float) ($json['compra'] ?? $json['buy'] ?? 0);
+            $venta = $rates ? (float) ($rates['sell'] ?? 0) : (float) ($json['venta'] ?? $json['sell'] ?? 0);
 
             return [
                 'date' => $json['date'] ?? $dt,

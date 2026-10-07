@@ -199,15 +199,20 @@ class SystemSettingController extends Controller
             if ($type === 'tc') {
                 $token = $customToken ?: SystemSetting::get('api_key_tc', config('factos.apisperu.token_exchange_rate', ''));
                 $baseUrl = SystemSetting::get('exchange_rate_url', config('factos.apisperu.exchange_rate_url', 'https://tipocambio.apisperu.com/api/v1'));
+                $source = strtolower((string) ($request->input('source', 'sunat') ?: 'sunat'));
+                if (!in_array($source, ['sunat', 'sbs'], true)) {
+                    $source = 'sunat';
+                }
+                $date = (string) ($request->input('query') ?: now()->toDateString());
 
-                $res = Http::withToken($token)->timeout(10)->get("{$baseUrl}/sunat?date=" . now()->toDateString());
+                $res = Http::withToken($token)->timeout(10)->get("{$baseUrl}/{$source}?date={$date}");
                 if (!$res->successful()) {
                     throw new Exception("Error ({$res->status()}): {$res->body()}");
                 }
 
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'Consulta Tipo de Cambio exitosa',
+                    'message' => 'Consulta Tipo de Cambio ('.strtoupper($source).') exitosa',
                     'data' => $res->json(),
                 ]);
             }
