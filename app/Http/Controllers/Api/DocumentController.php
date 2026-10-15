@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\VoidDocumentRequest;
 use App\Jobs\VoidDocumentJob;
 use App\Models\Document;
+use App\Services\Greenter\PdfGeneratorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -14,10 +15,18 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class DocumentController extends Controller
 {
+    private function findDocument(string $identifier): Document
+    {
+        return Document::query()
+            ->where('id', $identifier)
+            ->orWhereRaw('MD5(id) = ?', [$identifier])
+            ->firstOrFail();
+    }
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $query = Document::query()->with('company');
+        $query = Document::query()->with(['company', 'appliedAdvances']);
 
         if (!$user->isSuperAdmin()) {
             $userCompanyIds = $user->companies()->pluck('id');
@@ -58,6 +67,14 @@ class DocumentController extends Controller
             $query->where('is_production', !$request->boolean('is_test'));
         }
 
+        if ($request->has('is_advance')) {
+            $query->where('is_advance', $request->boolean('is_advance'));
+        }
+
+        if ($request->boolean('has_balance')) {
+            $query->where('is_advance', true)->where('advance_balance', '>', 0);
+        }
+
         if ($request->filled('date_from')) {
             $query->whereDate('issue_date', '>=', $request->query('date_from'));
         }
@@ -78,20 +95,22 @@ class DocumentController extends Controller
         ]);
     }
 
-    public function show(Request $request, Document $document): JsonResponse
+    public function show(Request $request, string $identifier): JsonResponse
     {
+        $document = $this->findDocument($identifier);
         $user = $request->user();
         abort_if(!$user->isSuperAdmin() && $document->company->user_id !== $user->id, 403, 'No tiene autorización para consultar este comprobante.');
 
-        $document->loadMissing(['company', 'items']);
+        $document->loadMissing(['company', 'items', 'appliedAdvances']);
         $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
-
 
         return response()->json([
             'status' => 'success',
             'data' => [
                 'id' => $document->id,
+                'md5' => md5($document->id),
                 'company_id' => $document->company_id,
+                'company_data' => $document->company_data,
                 'external_id' => $document->external_id,
                 'type_code' => $document->type_code,
                 'document_type' => $document->type_code,
@@ -102,6 +121,12 @@ class DocumentController extends Controller
                 'status' => $document->status,
                 'is_production' => (bool) $document->is_production,
                 'is_test' => !$document->is_production,
+                'is_advance' => (bool) $document->is_advance,
+                'advance_total' => (float) $document->advance_total,
+                'advance_balance' => (float) $document->advance_balance,
+                'has_deductions' => (bool) $document->has_deductions,
+                'observations' => $document->observations,
+                'pie_pagina' => $document->pie_pagina,
                 'issue_date' => $document->issue_date->toDateString(),
                 'issue_time' => $document->issue_time,
                 'due_date' => $document->due_date?->toDateString(),
@@ -148,35 +173,32 @@ class DocumentController extends Controller
                 'void_sunat_code' => $document->void_sunat_code,
                 'void_sunat_description' => $document->void_sunat_description,
                 'voided_at' => $document->voided_at?->toIso8601String(),
-                'void' => [
-                    'ticket' => $document->void_ticket,
-                    'reason' => $document->void_reason,
-                    'sunat_code' => $document->void_sunat_code,
-                    'sunat_description' => $document->void_sunat_description,
-                    'voided_at' => $document->voided_at?->toIso8601String(),
-                ],
                 'hash' => $document->hash,
                 'links' => [
                     'xml' => "{$baseUrl}/api/v1/documents/{$document->id}/xml",
                     'cdr' => "{$baseUrl}/api/v1/documents/{$document->id}/cdr",
                     'pdf' => "{$baseUrl}/api/v1/documents/{$document->id}/pdf",
-                    'void_xml' => $document->void_xml_path ? "{$baseUrl}/api/v1/documents/{$document->id}/void-xml" : null,
-                    'void_cdr' => $document->void_cdr_path ? "{$baseUrl}/api/v1/documents/{$document->id}/void-cdr" : null,
+                    'pdf_md5' => "{$baseUrl}/api/v1/documents/" . md5($document->id) . "/pdf",
+                    'void_xml' => "{$baseUrl}/api/v1/documents/{$document->id}/void-xml",
+                    'void_cdr' => "{$baseUrl}/api/v1/documents/{$document->id}/void-cdr",
                 ],
                 'company' => $document->company,
                 'items' => $document->items,
+                'applied_advances' => $document->appliedAdvances,
             ],
         ]);
     }
 
-    public function void(VoidDocumentRequest $request, ?Document $document = null): JsonResponse
+    public function void(VoidDocumentRequest $request, ?string $identifier = null): JsonResponse
     {
         $validated = $request->validated();
         $reason = $validated['reason'];
-
         $user = $request->user();
 
-        if (!$document) {
+        if ($identifier) {
+            $document = $this->findDocument($identifier);
+            abort_if(!$user->isSuperAdmin() && $document->company->user_id !== $user->id, 403, 'No tiene autorización para anular este comprobante.');
+        } else {
             $query = Document::query()
                 ->where('company_id', $validated['company_id'])
                 ->where('type_code', $validated['type_code'])
@@ -196,8 +218,6 @@ class DocumentController extends Controller
                     'message' => 'No se encontró el comprobante que se desea anular o no pertenece a sus empresas.',
                 ], 404);
             }
-        } else {
-            abort_if(!$user->isSuperAdmin() && $document->company->user_id !== $user->id, 403, 'No tiene autorización para anular este comprobante.');
         }
 
         if ($document->status === 'voided') {
@@ -241,106 +261,141 @@ class DocumentController extends Controller
         ], 202);
     }
 
-    public function xml(Document $document): Response|JsonResponse|BinaryFileResponse
+    public function xml(string $identifier): Response|JsonResponse
     {
-        $disk = config('factos.storage_disk', 'local');
+        $document = $this->findDocument($identifier);
 
-        if (!$document->xml_path || !Storage::disk($disk)->exists($document->xml_path)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Archivo XML no encontrado o comprobante aún no firmado.',
-            ], 404);
+        // 1. Priorizar lectura desde BD
+        if ($document->xml_content) {
+            $filename = "{$document->getSunatFileName()}.xml";
+            return response($document->xml_content, 200, [
+                'Content-Type' => 'application/xml',
+                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            ]);
         }
 
-        /** @var string $xml */
-        $xml = Storage::disk($disk)->get($document->xml_path);
-        $filename = "{$document->getSunatFileName()}.xml";
+        // 2. Fallback a storage físico
+        $disk = config('factos.storage_disk', 'local');
+        if ($document->xml_path && Storage::disk($disk)->exists($document->xml_path)) {
+            /** @var string $xml */
+            $xml = Storage::disk($disk)->get($document->xml_path);
+            $filename = "{$document->getSunatFileName()}.xml";
 
-        return response($xml, 200, [
-            'Content-Type' => 'application/xml',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ]);
+            return response($xml, 200, [
+                'Content-Type' => 'application/xml',
+                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Archivo XML no encontrado o comprobante aún no firmado.',
+        ], 404);
     }
 
-    public function cdr(Document $document): Response|JsonResponse|BinaryFileResponse
+    public function cdr(string $identifier): Response|JsonResponse
     {
-        $disk = config('factos.storage_disk', 'local');
+        $document = $this->findDocument($identifier);
 
-        if (!$document->cdr_path || !Storage::disk($disk)->exists($document->cdr_path)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Archivo CDR no disponible o aún no emitido por SUNAT.',
-            ], 404);
+        // 1. Priorizar lectura desde BD
+        if ($document->cdr_content) {
+            $cdrZip = base64_decode($document->cdr_content);
+            $filename = "R-{$document->getSunatFileName()}.zip";
+
+            return response($cdrZip, 200, [
+                'Content-Type' => 'application/zip',
+                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            ]);
         }
 
-        /** @var string $cdrZip */
-        $cdrZip = Storage::disk($disk)->get($document->cdr_path);
-        $filename = "R-{$document->getSunatFileName()}.zip";
+        // 2. Fallback a storage físico
+        $disk = config('factos.storage_disk', 'local');
+        if ($document->cdr_path && Storage::disk($disk)->exists($document->cdr_path)) {
+            /** @var string $cdrZip */
+            $cdrZip = Storage::disk($disk)->get($document->cdr_path);
+            $filename = "R-{$document->getSunatFileName()}.zip";
 
-        return response($cdrZip, 200, [
-            'Content-Type' => 'application/zip',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ]);
+            return response($cdrZip, 200, [
+                'Content-Type' => 'application/zip',
+                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Archivo CDR no disponible o aún no emitido por SUNAT.',
+        ], 404);
     }
 
-    public function pdf(Document $document): Response|JsonResponse|BinaryFileResponse
+    public function pdf(string $identifier, PdfGeneratorService $pdfService): Response|JsonResponse
     {
-        $disk = config('factos.storage_disk', 'local');
+        $document = $this->findDocument($identifier);
 
-        if (!$document->pdf_path || !Storage::disk($disk)->exists($document->pdf_path)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Archivo PDF no disponible para este comprobante.',
-            ], 404);
-        }
-
-        /** @var string $pdf */
-        $pdf = Storage::disk($disk)->get($document->pdf_path);
+        // Renderizado dinámico en memoria: NO depende de archivos en disco ni de que SUNAT haya respondido
+        $pdfBytes = $pdfService->renderPdfBytes($document);
         $filename = "{$document->getSunatFileName()}.pdf";
 
-        return response($pdf, 200, [
+        return response($pdfBytes, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => "inline; filename=\"{$filename}\"",
         ]);
     }
 
-    public function voidXml(Document $document): Response|JsonResponse
+    public function voidXml(string $identifier): Response|JsonResponse
     {
-        $disk = config('factos.storage_disk', 'local');
+        $document = $this->findDocument($identifier);
 
-        if (!$document->void_xml_path || !Storage::disk($disk)->exists($document->void_xml_path)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Archivo XML de anulación no encontrado.',
-            ], 404);
+        if ($document->void_xml_content) {
+            return response($document->void_xml_content, 200, [
+                'Content-Type' => 'application/xml',
+                'Content-Disposition' => 'attachment; filename="VOID-' . $document->getSunatFileName() . '.xml"',
+            ]);
         }
 
-        /** @var string $xml */
-        $xml = Storage::disk($disk)->get($document->void_xml_path);
+        $disk = config('factos.storage_disk', 'local');
+        if ($document->void_xml_path && Storage::disk($disk)->exists($document->void_xml_path)) {
+            /** @var string $xml */
+            $xml = Storage::disk($disk)->get($document->void_xml_path);
 
-        return response($xml, 200, [
-            'Content-Type' => 'application/xml',
-            'Content-Disposition' => 'attachment; filename="VOID-' . basename($document->void_xml_path) . '"',
-        ]);
+            return response($xml, 200, [
+                'Content-Type' => 'application/xml',
+                'Content-Disposition' => 'attachment; filename="VOID-' . basename($document->void_xml_path) . '"',
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Archivo XML de anulación no encontrado.',
+        ], 404);
     }
 
-    public function voidCdr(Document $document): Response|JsonResponse
+    public function voidCdr(string $identifier): Response|JsonResponse
     {
-        $disk = config('factos.storage_disk', 'local');
+        $document = $this->findDocument($identifier);
 
-        if (!$document->void_cdr_path || !Storage::disk($disk)->exists($document->void_cdr_path)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Archivo CDR de anulación no encontrado.',
-            ], 404);
+        if ($document->void_cdr_content) {
+            $cdrZip = base64_decode($document->void_cdr_content);
+
+            return response($cdrZip, 200, [
+                'Content-Type' => 'application/zip',
+                'Content-Disposition' => 'attachment; filename="R-VOID-' . $document->getSunatFileName() . '.zip"',
+            ]);
         }
 
-        /** @var string $cdrZip */
-        $cdrZip = Storage::disk($disk)->get($document->void_cdr_path);
+        $disk = config('factos.storage_disk', 'local');
+        if ($document->void_cdr_path && Storage::disk($disk)->exists($document->void_cdr_path)) {
+            /** @var string $cdrZip */
+            $cdrZip = Storage::disk($disk)->get($document->void_cdr_path);
 
-        return response($cdrZip, 200, [
-            'Content-Type' => 'application/zip',
-            'Content-Disposition' => 'attachment; filename="R-VOID-' . basename($document->void_cdr_path) . '"',
-        ]);
+            return response($cdrZip, 200, [
+                'Content-Type' => 'application/zip',
+                'Content-Disposition' => 'attachment; filename="R-VOID-' . basename($document->void_cdr_path) . '"',
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Archivo CDR de anulación no encontrado.',
+        ], 404);
     }
 }

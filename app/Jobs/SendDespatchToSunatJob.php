@@ -36,19 +36,20 @@ class SendDespatchToSunatJob implements ShouldQueue
             return;
         }
 
-        $disk = config('factos.storage_disk', 'local');
-        if (!$this->despatch->xml_path || !Storage::disk($disk)->exists($this->despatch->xml_path)) {
-            Log::error("Guía XML no encontrado para {$this->despatch->id} en {$this->despatch->xml_path}");
-            $this->despatch->update([
-                'status' => 'failed',
-                'sunat_description' => 'Archivo XML firmado no encontrado en storage.',
-            ]);
+        $signedXml = $this->despatch->xml_content;
+        if (!$signedXml) {
+            if ($this->despatch->xml_path && Storage::disk($disk)->exists($this->despatch->xml_path)) {
+                $signedXml = Storage::disk($disk)->get($this->despatch->xml_path);
+            } else {
+                Log::error("Guía XML no encontrado para {$this->despatch->id}");
+                $this->despatch->update([
+                    'status' => 'failed',
+                    'sunat_description' => 'Archivo XML firmado no encontrado.',
+                ]);
 
-            return;
+                return;
+            }
         }
-
-        /** @var string $signedXml */
-        $signedXml = Storage::disk($disk)->get($this->despatch->xml_path);
 
         try {
             // If already has ticket, verify ticket status
@@ -68,6 +69,7 @@ class SendDespatchToSunatJob implements ShouldQueue
                         'sunat_description' => $cdrResponse?->getDescription() ?? 'Guía aceptada por SUNAT.',
                         'sunat_notes' => $cdrResponse?->getNotes(),
                         'cdr_path' => $cdrPath,
+                        'cdr_content' => $cdrZip ? base64_encode($cdrZip) : null,
                     ]);
 
                     SendWebhookJob::dispatch($this->despatch, 'despatch.accepted')->onQueue('webhooks');
@@ -120,6 +122,7 @@ class SendDespatchToSunatJob implements ShouldQueue
                             'sunat_description' => $cdrResponse?->getDescription() ?? 'Guía aceptada por SUNAT.',
                             'sunat_notes' => $cdrResponse?->getNotes(),
                             'cdr_path' => $cdrPath,
+                            'cdr_content' => $cdrZip ? base64_encode($cdrZip) : null,
                         ]);
 
                         SendWebhookJob::dispatch($this->despatch, 'despatch.accepted')->onQueue('webhooks');

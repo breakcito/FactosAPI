@@ -27,18 +27,20 @@ class SendDocumentToSunatJob implements ShouldQueue
         $this->document->loadMissing(['company']);
         $disk = config('factos.storage_disk', 'local');
 
-        // Check if signed XML exists in storage
-        if (!$this->document->xml_path || !Storage::disk($disk)->exists($this->document->xml_path)) {
-            Log::error("Signed XML file not found for document {$this->document->id} at {$this->document->xml_path}");
-            $this->document->update([
-                'status' => 'failed',
-                'sunat_description' => 'Archivo XML firmado no encontrado para el envío.',
-            ]);
+        $signedXml = $this->document->xml_content;
+        if (!$signedXml) {
+            if ($this->document->xml_path && Storage::disk($disk)->exists($this->document->xml_path)) {
+                $signedXml = Storage::disk($disk)->get($this->document->xml_path);
+            } else {
+                Log::error("Signed XML not found for document {$this->document->id}");
+                $this->document->update([
+                    'status' => 'failed',
+                    'sunat_description' => 'Archivo XML firmado no encontrado para el envío.',
+                ]);
 
-            return;
+                return;
+            }
         }
-
-        $signedXml = Storage::disk($disk)->get($this->document->xml_path);
 
         try {
             // Send signed XML directly to SUNAT (Idempotent - never re-signs)
@@ -55,6 +57,9 @@ class SendDocumentToSunatJob implements ShouldQueue
                 $notes = $cdrResponse?->getNotes() ?? [];
 
                 $this->document->cdr_path = $cdrPath;
+                if ($cdrZip) {
+                    $this->document->cdr_content = base64_encode($cdrZip);
+                }
                 $this->document->sunat_code = $code;
                 $this->document->sunat_description = $description;
                 $this->document->sunat_notes = $notes;

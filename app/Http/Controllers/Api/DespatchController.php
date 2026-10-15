@@ -8,6 +8,7 @@ use App\Jobs\ProcessDespatchJob;
 use App\Jobs\SendWebhookJob;
 use App\Models\Company;
 use App\Models\Despatch;
+use App\Services\Greenter\PdfGeneratorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -17,6 +18,14 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class DespatchController extends Controller
 {
+    private function findDespatch(string $identifier): Despatch
+    {
+        return Despatch::query()
+            ->where('id', $identifier)
+            ->orWhereRaw('MD5(id) = ?', [$identifier])
+            ->firstOrFail();
+    }
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -88,9 +97,47 @@ class DespatchController extends Controller
         $driver = $validated['driver'] ?? [];
         $vehicle = $validated['vehicle'] ?? [];
 
-        $despatch = DB::transaction(function () use ($validated, $series, $recipient, $origin, $destination, $carrier, $driver, $vehicle, $isProduction) {
+        // Guardar información desnormalizada de la empresa emisora
+        $companyData = [
+            'id' => $company->id,
+            'ruc' => $company->ruc,
+            'business_name' => $company->business_name,
+            'trademark_name' => $company->trademark_name,
+            'address' => $company->address,
+            'ubigeo' => $company->ubigeo,
+            'department' => $company->department,
+            'province' => $company->province,
+            'district' => $company->district,
+            'email' => $company->email,
+            'phone' => $company->phone,
+        ];
+
+        $isReferentialWeight = (bool) ($validated['is_referential_weight'] ?? false);
+        $observations = $validated['observations'] ?? null;
+        if ($isReferentialWeight && (!$observations || !str_contains(strtoupper($observations), 'REFERENCIAL'))) {
+            $observations = $observations ? ($observations . " - EL PESO ES REFERENCIAL") : "EL PESO ES REFERENCIAL";
+        }
+
+        $vehicleCert = $validated['vehicle_certificate'] ?? ($vehicle['certificate'] ?? null);
+
+        $despatch = DB::transaction(function () use (
+            $validated,
+            $series,
+            $recipient,
+            $origin,
+            $destination,
+            $carrier,
+            $driver,
+            $vehicle,
+            $isProduction,
+            $companyData,
+            $isReferentialWeight,
+            $observations,
+            $vehicleCert
+        ) {
             $desp = Despatch::create([
                 'company_id' => $validated['company_id'],
+                'company_data' => $companyData,
                 'external_id' => $validated['external_id'] ?? null,
                 'is_production' => $isProduction,
                 'type_code' => $validated['type_code'] ?? '09',
@@ -125,6 +172,9 @@ class DespatchController extends Controller
                 'driver_license' => $driver['license'] ?? null,
                 'vehicle_plate' => $vehicle['plate'] ?? null,
                 'secondary_vehicle_plate' => $vehicle['secondary_plate'] ?? null,
+                'vehicle_certificate' => $vehicleCert,
+                'observations' => $observations,
+                'is_referential_weight' => $isReferentialWeight,
                 'related_documents' => $validated['related_documents'] ?? null,
                 'status' => 'pending',
             ]);
@@ -144,23 +194,33 @@ class DespatchController extends Controller
         // Dispatch background processing job
         ProcessDespatchJob::dispatch($despatch)->onQueue('high');
 
+        $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
+
         return response()->json([
             'status' => 'success',
             'message' => 'Guía de remisión recibida y encolada para procesamiento.',
             'data' => [
                 'id' => $despatch->id,
+                'md5' => md5($despatch->id),
                 'external_id' => $despatch->external_id,
                 'document' => $despatch->getDocumentNumber(),
                 'type_code' => $despatch->type_code,
                 'status' => 'pending',
                 'is_production' => (bool) $despatch->is_production,
                 'is_test' => !$despatch->is_production,
+                'links' => [
+                    'pdf' => "{$baseUrl}/api/v1/despatches/{$despatch->id}/pdf",
+                    'pdf_md5' => "{$baseUrl}/api/v1/despatches/" . md5($despatch->id) . "/pdf",
+                    'xml' => "{$baseUrl}/api/v1/despatches/{$despatch->id}/xml",
+                    'cdr' => "{$baseUrl}/api/v1/despatches/{$despatch->id}/cdr",
+                ],
             ],
         ], 202);
     }
 
-    public function show(Request $request, Despatch $despatch): JsonResponse
+    public function show(Request $request, string $identifier): JsonResponse
     {
+        $despatch = $this->findDespatch($identifier);
         $user = $request->user();
         abort_if(!$user->isSuperAdmin() && $despatch->company->user_id !== $user->id, 403, 'No tiene autorización para consultar esta guía de remisión.');
 
@@ -171,6 +231,9 @@ class DespatchController extends Controller
             'status' => 'success',
             'data' => [
                 'id' => $despatch->id,
+                'md5' => md5($despatch->id),
+                'company_id' => $despatch->company_id,
+                'company_data' => $despatch->company_data,
                 'external_id' => $despatch->external_id,
                 'document_type' => $despatch->type_code,
                 'series' => $despatch->series,
@@ -182,11 +245,15 @@ class DespatchController extends Controller
                 'issue_date' => $despatch->issue_date->toDateString(),
                 'issue_time' => $despatch->issue_time,
                 'transfer_date' => $despatch->transfer_date->toDateString(),
+                'delivery_date' => $despatch->delivery_date?->toDateString(),
                 'transport_mode' => $despatch->transport_mode,
                 'transfer_reason' => $despatch->transfer_reason,
+                'transfer_description' => $despatch->transfer_description,
                 'total_weight' => (float) $despatch->total_weight,
                 'weight_unit' => $despatch->weight_unit,
                 'packages_count' => $despatch->packages_count,
+                'is_referential_weight' => (bool) $despatch->is_referential_weight,
+                'observations' => $despatch->observations,
                 'recipient' => [
                     'doc_type' => $despatch->recipient_doc_type,
                     'doc_number' => $despatch->recipient_doc_number,
@@ -202,17 +269,26 @@ class DespatchController extends Controller
                     'ubigeo' => $despatch->destination_ubigeo,
                     'address' => $despatch->destination_address,
                 ],
-                'transport' => $despatch->isPublicTransport() ? [
-                    'carrier_name' => $despatch->carrier_name,
-                    'carrier_doc_number' => $despatch->carrier_doc_number,
-                    'carrier_mtc' => $despatch->carrier_mtc,
-                ] : [
-                    'driver_name' => $despatch->driver_name,
-                    'driver_doc_number' => $despatch->driver_doc_number,
-                    'driver_license' => $despatch->driver_license,
-                    'vehicle_plate' => $despatch->vehicle_plate,
+                'carrier' => [
+                    'doc_type' => $despatch->carrier_doc_type,
+                    'doc_number' => $despatch->carrier_doc_number,
+                    'name' => $despatch->carrier_name,
+                    'mtc' => $despatch->carrier_mtc,
                 ],
+                'driver' => [
+                    'doc_type' => $despatch->driver_doc_type,
+                    'doc_number' => $despatch->driver_doc_number,
+                    'name' => $despatch->driver_name,
+                    'license' => $despatch->driver_license,
+                ],
+                'vehicle' => [
+                    'plate' => $despatch->vehicle_plate,
+                    'secondary_plate' => $despatch->secondary_vehicle_plate,
+                    'certificate' => $despatch->vehicle_certificate,
+                ],
+                'related_documents' => $despatch->related_documents,
                 'sunat' => [
+                    'ticket' => $despatch->ticket ?? $despatch->sunat_ticket,
                     'code' => $despatch->sunat_code,
                     'description' => $despatch->sunat_description,
                     'notes' => $despatch->sunat_notes,
@@ -222,14 +298,16 @@ class DespatchController extends Controller
                     'xml' => "{$baseUrl}/api/v1/despatches/{$despatch->id}/xml",
                     'cdr' => "{$baseUrl}/api/v1/despatches/{$despatch->id}/cdr",
                     'pdf' => "{$baseUrl}/api/v1/despatches/{$despatch->id}/pdf",
+                    'pdf_md5' => "{$baseUrl}/api/v1/despatches/" . md5($despatch->id) . "/pdf",
                 ],
                 'items' => $despatch->items,
             ],
         ]);
     }
 
-    public function void(Request $request, Despatch $despatch): JsonResponse
+    public function void(Request $request, string $identifier): JsonResponse
     {
+        $despatch = $this->findDespatch($identifier);
         $user = $request->user();
         abort_if(!$user->isSuperAdmin() && $despatch->company->user_id !== $user->id, 403, 'No tiene autorización para anular esta guía de remisión.');
 
@@ -274,64 +352,76 @@ class DespatchController extends Controller
         ]);
     }
 
-    public function xml(Despatch $despatch): Response|JsonResponse|BinaryFileResponse
+    public function xml(string $identifier): Response|JsonResponse
     {
-        $disk = config('factos.storage_disk', 'local');
+        $despatch = $this->findDespatch($identifier);
 
-        if (!$despatch->xml_path || !Storage::disk($disk)->exists($despatch->xml_path)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Archivo XML no encontrado o guía aún no firmada.',
-            ], 404);
+        if ($despatch->xml_content) {
+            $filename = "{$despatch->getSunatFileName()}.xml";
+            return response($despatch->xml_content, 200, [
+                'Content-Type' => 'application/xml',
+                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            ]);
         }
 
-        /** @var string $xml */
-        $xml = Storage::disk($disk)->get($despatch->xml_path);
-        $filename = "{$despatch->getSunatFileName()}.xml";
+        $disk = config('factos.storage_disk', 'local');
+        if ($despatch->xml_path && Storage::disk($disk)->exists($despatch->xml_path)) {
+            /** @var string $xml */
+            $xml = Storage::disk($disk)->get($despatch->xml_path);
+            $filename = "{$despatch->getSunatFileName()}.xml";
 
-        return response($xml, 200, [
-            'Content-Type' => 'application/xml',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ]);
+            return response($xml, 200, [
+                'Content-Type' => 'application/xml',
+                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Archivo XML no encontrado o guía aún no firmada.',
+        ], 404);
     }
 
-    public function cdr(Despatch $despatch): Response|JsonResponse|BinaryFileResponse
+    public function cdr(string $identifier): Response|JsonResponse
     {
-        $disk = config('factos.storage_disk', 'local');
+        $despatch = $this->findDespatch($identifier);
 
-        if (!$despatch->cdr_path || !Storage::disk($disk)->exists($despatch->cdr_path)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Archivo CDR no disponible para esta guía.',
-            ], 404);
+        if ($despatch->cdr_content) {
+            $cdrZip = base64_decode($despatch->cdr_content);
+            $filename = "R-{$despatch->getSunatFileName()}.zip";
+
+            return response($cdrZip, 200, [
+                'Content-Type' => 'application/zip',
+                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            ]);
         }
 
-        /** @var string $cdrZip */
-        $cdrZip = Storage::disk($disk)->get($despatch->cdr_path);
-        $filename = "R-{$despatch->getSunatFileName()}.zip";
+        $disk = config('factos.storage_disk', 'local');
+        if ($despatch->cdr_path && Storage::disk($disk)->exists($despatch->cdr_path)) {
+            /** @var string $cdrZip */
+            $cdrZip = Storage::disk($disk)->get($despatch->cdr_path);
+            $filename = "R-{$despatch->getSunatFileName()}.zip";
 
-        return response($cdrZip, 200, [
-            'Content-Type' => 'application/zip',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ]);
+            return response($cdrZip, 200, [
+                'Content-Type' => 'application/zip',
+                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Archivo CDR no disponible para esta guía.',
+        ], 404);
     }
 
-    public function pdf(Despatch $despatch): Response|JsonResponse|BinaryFileResponse
+    public function pdf(string $identifier, PdfGeneratorService $pdfService): Response|JsonResponse
     {
-        $disk = config('factos.storage_disk', 'local');
+        $despatch = $this->findDespatch($identifier);
 
-        if (!$despatch->pdf_path || !Storage::disk($disk)->exists($despatch->pdf_path)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Archivo PDF no disponible para esta guía.',
-            ], 404);
-        }
-
-        /** @var string $pdf */
-        $pdf = Storage::disk($disk)->get($despatch->pdf_path);
+        $pdfBytes = $pdfService->renderPdfBytes($despatch);
         $filename = "{$despatch->getSunatFileName()}.pdf";
 
-        return response($pdf, 200, [
+        return response($pdfBytes, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => "inline; filename=\"{$filename}\"",
         ]);

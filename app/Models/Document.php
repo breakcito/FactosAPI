@@ -117,6 +117,17 @@ class Document extends Model
         'total_unaffected',
         'total_exonerated',
         'total_free',
+        'company_data',
+        'xml_content',
+        'cdr_content',
+        'void_xml_content',
+        'void_cdr_content',
+        'observations',
+        'pie_pagina',
+        'is_advance',
+        'advance_total',
+        'advance_balance',
+        'has_deductions',
         'total_exportation',
         'total_igv',
         'total_icbper',
@@ -148,6 +159,12 @@ class Document extends Model
     protected function casts(): array
     {
         return [
+            'company_data' => 'array',
+            'pie_pagina' => 'array',
+            'is_advance' => 'boolean',
+            'has_deductions' => 'boolean',
+            'advance_total' => 'float',
+            'advance_balance' => 'float',
             'is_production' => 'boolean',
             'issue_date' => 'date',
             'due_date' => 'date',
@@ -173,6 +190,11 @@ class Document extends Model
             'note_data' => 'array',
             'extra_fields' => 'array',
         ];
+    }
+
+    public function appliedAdvances(): HasMany
+    {
+        return $this->hasMany(AppliedAdvance::class, 'document_id');
     }
 
     public function isProduction(): bool

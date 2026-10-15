@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreInvoiceRequest;
 use App\Jobs\ProcessDocumentJob;
+use App\Models\AppliedAdvance;
 use App\Models\Company;
 use App\Models\Document;
 use Illuminate\Http\JsonResponse;
@@ -25,9 +26,45 @@ class InvoiceController extends Controller
         $totals = $validated['totals'];
         $client = $validated['client'];
 
-        $document = DB::transaction(function () use ($validated, $series, $typeCode, $totals, $client, $isProduction) {
+        // Guardar información desnormalizada de la empresa emisora para inmutabilidad del comprobante
+        $companyData = [
+            'id' => $company->id,
+            'ruc' => $company->ruc,
+            'business_name' => $company->business_name,
+            'trademark_name' => $company->trademark_name,
+            'address' => $company->address,
+            'ubigeo' => $company->ubigeo,
+            'department' => $company->department,
+            'province' => $company->province,
+            'district' => $company->district,
+            'email' => $company->email,
+            'phone' => $company->phone,
+            'logo_url' => $company->logo_path,
+        ];
+
+        $isAdvance = (bool) ($validated['is_advance'] ?? false);
+        $totalDoc = (float) $totals['total'];
+        $advanceTotal = $isAdvance ? $totalDoc : 0.00;
+        $advanceBalance = $isAdvance ? $totalDoc : 0.00;
+
+        $hasDeductions = !empty($validated['applied_advances']);
+
+        $document = DB::transaction(function () use (
+            $validated,
+            $series,
+            $typeCode,
+            $totals,
+            $client,
+            $isProduction,
+            $companyData,
+            $isAdvance,
+            $advanceTotal,
+            $advanceBalance,
+            $hasDeductions
+        ) {
             $doc = Document::create([
                 'company_id' => $validated['company_id'],
+                'company_data' => $companyData,
                 'external_id' => $validated['external_id'] ?? null,
                 'is_production' => $isProduction,
                 'type_code' => $typeCode,
@@ -49,6 +86,12 @@ class InvoiceController extends Controller
                 'purchase_order' => $validated['purchase_order'] ?? null,
                 'plate_number' => $validated['plate_number'] ?? null,
                 'extra_fields' => $validated['extra_fields'] ?? null,
+                'observations' => $validated['observations'] ?? null,
+                'pie_pagina' => $validated['pie_pagina'] ?? null,
+                'is_advance' => $isAdvance,
+                'advance_total' => $advanceTotal,
+                'advance_balance' => $advanceBalance,
+                'has_deductions' => $hasDeductions,
                 'client_doc_type' => $client['doc_type'],
                 'client_doc_number' => $client['doc_number'],
                 'client_name' => $client['name'],
@@ -81,23 +124,91 @@ class InvoiceController extends Controller
                 ]);
             }
 
+            // Registrar anticipos aplicados y descontar saldo
+            if (!empty($validated['applied_advances'])) {
+                foreach ($validated['applied_advances'] as $advItem) {
+                    $amount = (float) $advItem['amount'];
+                    $advanceDocId = $advItem['advance_document_id'] ?? null;
+
+                    if ($advanceDocId) {
+                        $advanceDoc = Document::where('id', $advanceDocId)
+                            ->where('company_id', $validated['company_id'])
+                            ->first();
+
+                        if ($advanceDoc) {
+                            $newBalance = max(0.00, (float) $advanceDoc->advance_balance - $amount);
+                            $advanceDoc->update(['advance_balance' => $newBalance]);
+                        }
+                    }
+
+                    AppliedAdvance::create([
+                        'document_id' => $doc->id,
+                        'advance_document_id' => $advanceDocId,
+                        'advance_type_code' => $advItem['type_code'] ?? '01',
+                        'advance_series' => strtoupper($advItem['series']),
+                        'advance_correlative' => (string) $advItem['correlative'],
+                        'advance_issue_date' => $advItem['issue_date'] ?? null,
+                        'amount' => $amount,
+                        'description' => $advItem['description'] ?? 'Anticipo deducido',
+                    ]);
+                }
+            }
+
+            // Si es Nota de Crédito por anulación (tipo 07, motivo 01), revertir anticipos aplicados en la factura original
+            if ($typeCode === '07' && !empty($validated['note']['code']) && $validated['note']['code'] === '01') {
+                $affectedSeries = strtoupper($validated['note']['affected_series'] ?? '');
+                $affectedCorr = (int) ($validated['note']['affected_correlative'] ?? 0);
+
+                $affectedDoc = Document::where('company_id', $validated['company_id'])
+                    ->where('series', $affectedSeries)
+                    ->where('correlative', $affectedCorr)
+                    ->first();
+
+                if ($affectedDoc) {
+                    $applieds = AppliedAdvance::where('document_id', $affectedDoc->id)
+                        ->where('is_reversed', false)
+                        ->get();
+
+                    foreach ($applieds as $app) {
+                        if ($app->advance_document_id) {
+                            $origAdv = Document::find($app->advance_document_id);
+                            if ($origAdv) {
+                                $origAdv->increment('advance_balance', (float) $app->amount);
+                            }
+                        }
+                        $app->update(['is_reversed' => true]);
+                    }
+                }
+            }
+
             return $doc;
         });
 
         // Dispatch background processing job to high queue
         ProcessDocumentJob::dispatch($document)->onQueue('high');
 
+        $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
+
         return response()->json([
             'status' => 'success',
             'message' => 'Comprobante recibido y encolado para procesamiento.',
             'data' => [
                 'id' => $document->id,
+                'md5' => md5($document->id),
                 'external_id' => $document->external_id,
                 'document' => $document->getDocumentNumber(),
                 'type_code' => $document->type_code,
                 'status' => 'pending',
                 'is_production' => (bool) $document->is_production,
                 'is_test' => !$document->is_production,
+                'is_advance' => (bool) $document->is_advance,
+                'advance_balance' => (float) $document->advance_balance,
+                'links' => [
+                    'pdf' => "{$baseUrl}/api/v1/documents/{$document->id}/pdf",
+                    'pdf_md5' => "{$baseUrl}/api/v1/documents/" . md5($document->id) . "/pdf",
+                    'xml' => "{$baseUrl}/api/v1/documents/{$document->id}/xml",
+                    'cdr' => "{$baseUrl}/api/v1/documents/{$document->id}/cdr",
+                ],
             ],
         ], 202);
     }

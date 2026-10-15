@@ -88,6 +88,10 @@ class StoreDespatchRequest extends FormRequest
             'vehicle' => ['nullable', 'array', 'required_if:transport_mode,02'],
             'vehicle.plate' => ['required_with:vehicle', 'string', 'max:20'],
             'vehicle.secondary_plate' => ['nullable', 'string', 'max:20'],
+            'vehicle.certificate' => ['nullable', 'string', 'max:100'],
+            'vehicle_certificate' => ['nullable', 'string', 'max:100'],
+            'observations' => ['nullable', 'string'],
+            'is_referential_weight' => ['nullable', 'boolean'],
 
             // Documentos Relacionados
             'related_documents' => ['nullable', 'array'],

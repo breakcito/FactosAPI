@@ -94,6 +94,17 @@ class StoreInvoiceRequest extends FormRequest
             'purchase_order' => ['nullable', 'string', 'max:50'],
             'plate_number' => ['nullable', 'string', 'max:20'],
             'extra_fields' => ['nullable', 'array'],
+            'observations' => ['nullable', 'string'],
+            'pie_pagina' => ['nullable', 'array'],
+            'is_advance' => ['nullable', 'boolean'],
+            'applied_advances' => ['nullable', 'array'],
+            'applied_advances.*.advance_document_id' => ['nullable', 'string'],
+            'applied_advances.*.type_code' => ['nullable', 'string'],
+            'applied_advances.*.series' => ['required_with:applied_advances', 'string'],
+            'applied_advances.*.correlative' => ['required_with:applied_advances'],
+            'applied_advances.*.amount' => ['required_with:applied_advances', 'numeric', 'min:0.01'],
+            'applied_advances.*.description' => ['nullable', 'string'],
+            'applied_advances.*.issue_date' => ['nullable', 'string'],
 
             // Datos de Nota (si es 07 u 08)
             'note' => ['nullable', 'array', Rule::requiredIf(in_array($typeCode, ['07', '08']))],
@@ -102,6 +113,8 @@ class StoreInvoiceRequest extends FormRequest
             'note.affected_correlative' => ['required_with:note', 'integer', 'min:1'],
             'note.code' => ['required_with:note', 'string'],
             'note.reason' => ['required_with:note', 'string', 'max:250'],
+            'note.dice' => ['nullable', 'string'],
+            'note.debe_decir' => ['nullable', 'string'],
 
             // Cliente
             'client' => ['required', 'array'],

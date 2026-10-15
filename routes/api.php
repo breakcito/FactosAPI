@@ -33,17 +33,17 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         });
     });
 
-    // Public / Token-optional document download endpoints (using UUID links)
-    Route::get('/documents/{document}/xml', [DocumentController::class, 'xml'])->name('documents.xml');
-    Route::get('/documents/{document}/cdr', [DocumentController::class, 'cdr'])->name('documents.cdr');
-    Route::get('/documents/{document}/pdf', [DocumentController::class, 'pdf'])->name('documents.pdf');
-    Route::get('/documents/{document}/void-xml', [DocumentController::class, 'voidXml'])->name('documents.voidXml');
-    Route::get('/documents/{document}/void-cdr', [DocumentController::class, 'voidCdr'])->name('documents.voidCdr');
+    // Public / Token-optional document download & dynamic rendering endpoints (UUID or MD5)
+    Route::get('/documents/{identifier}/xml', [DocumentController::class, 'xml'])->name('documents.xml');
+    Route::get('/documents/{identifier}/cdr', [DocumentController::class, 'cdr'])->name('documents.cdr');
+    Route::get('/documents/{identifier}/pdf', [DocumentController::class, 'pdf'])->name('documents.pdf');
+    Route::get('/documents/{identifier}/void-xml', [DocumentController::class, 'voidXml'])->name('documents.voidXml');
+    Route::get('/documents/{identifier}/void-cdr', [DocumentController::class, 'voidCdr'])->name('documents.voidCdr');
 
-    // Despatches public downloads
-    Route::get('/despatches/{despatch}/xml', [DespatchController::class, 'xml'])->name('despatches.xml');
-    Route::get('/despatches/{despatch}/cdr', [DespatchController::class, 'cdr'])->name('despatches.cdr');
-    Route::get('/despatches/{despatch}/pdf', [DespatchController::class, 'pdf'])->name('despatches.pdf');
+    // Despatches public downloads & dynamic rendering endpoints (UUID or MD5)
+    Route::get('/despatches/{identifier}/xml', [DespatchController::class, 'xml'])->name('despatches.xml');
+    Route::get('/despatches/{identifier}/cdr', [DespatchController::class, 'cdr'])->name('despatches.cdr');
+    Route::get('/despatches/{identifier}/pdf', [DespatchController::class, 'pdf'])->name('despatches.pdf');
 
     // Protected endpoints (Authenticates via Non-expiring JWT or scoped permanent API Key)
     Route::middleware(AuthenticateJwtOrApiKey::class)->group(function (): void {
@@ -56,10 +56,13 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::apiResource('companies', CompanyController::class);
         Route::get('/companies/{company}/webhooks', [CompanyController::class, 'webhooks'])->name('companies.webhooks');
 
+        // Purchase Documents (Comprobantes de Compra)
+        Route::apiResource('purchases', \App\Http\Controllers\Api\PurchaseController::class);
+
         // Electronic Documents (Invoices, Boletas, Notas de Crédito, Notas de Débito)
         Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index');
         Route::post('/documents', [InvoiceController::class, 'store'])->name('documents.store');
-        Route::get('/documents/{document}', [DocumentController::class, 'show'])->name('documents.show');
+        Route::get('/documents/{identifier}', [DocumentController::class, 'show'])->name('documents.show');
 
         // Dedicated Aliases for developer convenience
         Route::post('/invoices', [InvoiceController::class, 'store'])->name('invoices.store');
@@ -69,13 +72,13 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 
         // Document Annullment / Bajas SUNAT
         Route::post('/documents/void', [DocumentController::class, 'void'])->name('documents.voidGeneral');
-        Route::post('/documents/{document}/void', [DocumentController::class, 'void'])->name('documents.void');
+        Route::post('/documents/{identifier}/void', [DocumentController::class, 'void'])->name('documents.void');
 
         // Guías de Remisión Electrónica (GRE)
         Route::get('/despatches', [DespatchController::class, 'index'])->name('despatches.index');
         Route::post('/despatches', [DespatchController::class, 'store'])->name('despatches.store');
-        Route::get('/despatches/{despatch}', [DespatchController::class, 'show'])->name('despatches.show');
-        Route::post('/despatches/{despatch}/void', [DespatchController::class, 'void'])->name('despatches.void');
+        Route::get('/despatches/{identifier}', [DespatchController::class, 'show'])->name('despatches.show');
+        Route::post('/despatches/{identifier}/void', [DespatchController::class, 'void'])->name('despatches.void');
 
         // Auxiliary Services (DNI, RUC, Exchange Rate)
         Route::prefix('services')->name('services.')->group(function (): void {

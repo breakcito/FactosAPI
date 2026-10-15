@@ -131,6 +131,14 @@ class Despatch extends Model
         'driver_license',
         'vehicle_plate',
         'secondary_vehicle_plate',
+        'vehicle_certificate',
+        'company_data',
+        'observations',
+        'is_referential_weight',
+        'xml_content',
+        'cdr_content',
+        'void_xml_content',
+        'void_cdr_content',
         'related_documents',
         'status',
         'ticket',
@@ -159,6 +167,8 @@ class Despatch extends Model
     protected function casts(): array
     {
         return [
+            'company_data' => 'array',
+            'is_referential_weight' => 'boolean',
             'is_production' => 'boolean',
             'issue_date' => 'date',
             'transfer_date' => 'date',

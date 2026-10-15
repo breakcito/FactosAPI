@@ -1,6 +1,3 @@
-# Ejecutar tests
-php artisan test
-
 # Setup inicial
 composer install
 php artisan storage:link

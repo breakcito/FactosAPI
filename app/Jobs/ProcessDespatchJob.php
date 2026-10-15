@@ -31,6 +31,7 @@ class ProcessDespatchJob implements ShouldQueue
         $signResult = $greenterService->signDespatch($this->despatch);
 
         $this->despatch->hash = $signResult['hash'];
+        $this->despatch->xml_content = $signResult['xml'];
         $this->despatch->xml_path = $signResult['xml_path'];
         $this->despatch->status = 'signed';
 

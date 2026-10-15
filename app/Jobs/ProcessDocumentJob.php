@@ -33,10 +33,11 @@ class ProcessDocumentJob implements ShouldQueue
         $signResult = $greenterService->signDocument($this->document);
 
         $this->document->hash = $signResult['hash'];
+        $this->document->xml_content = $signResult['xml'];
         $this->document->xml_path = $signResult['xml_path'];
         $this->document->status = 'signed';
 
-        // 3. Generate PDF representation and save to storage
+        // 3. Generate PDF representation and save
         $pdfPath = $pdfService->generate($this->document);
         $this->document->pdf_path = $pdfPath;
         $this->document->save();
