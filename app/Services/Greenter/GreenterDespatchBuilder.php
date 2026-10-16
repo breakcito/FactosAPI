@@ -34,7 +34,7 @@ class GreenterDespatchBuilder
                     ->setProvincia($company->province ?: 'LIMA')
                     ->setDistrito($company->district ?: 'LIMA')
                     ->setUrbanizacion('-')
-                    ->setDireccion($company->address ?: 'AV. PRINCIPAL 123')
+                    ->setDireccion($this->sanitizeXmlText($company->address ?: 'AV. PRINCIPAL 123'))
                     ->setCodLocal($despatch->establishment_code ?: ($company->establishment_code ?: '0000'))
             );
 
@@ -43,7 +43,7 @@ class GreenterDespatchBuilder
             ->setNumDoc($despatch->recipient_doc_number)
             ->setRznSocial($despatch->recipient_name)
             ->setAddress(
-                (new GreenterAddress)->setDireccion($despatch->recipient_address ?: '-')
+                (new GreenterAddress)->setDireccion($this->sanitizeXmlText($despatch->recipient_address ?: '-'))
             );
 
         $envio = (new Shipment)
@@ -53,11 +53,11 @@ class GreenterDespatchBuilder
             ->setPesoTotal((float) $despatch->total_weight)
             ->setUndPesoTotal($despatch->weight_unit)
             ->setNumBultos($despatch->packages_count)
-            ->setPartida(new Direction($despatch->origin_ubigeo, $despatch->origin_address))
-            ->setLlegada(new Direction($despatch->destination_ubigeo, $despatch->destination_address));
+            ->setPartida(new Direction($despatch->origin_ubigeo, $this->sanitizeXmlText($despatch->origin_address)))
+            ->setLlegada(new Direction($despatch->destination_ubigeo, $this->sanitizeXmlText($despatch->destination_address)));
 
         if ($despatch->transfer_description) {
-            $envio->setDesTraslado($despatch->transfer_description);
+            $envio->setDesTraslado($this->sanitizeXmlText($despatch->transfer_description));
         }
 
         // Transporte Público
@@ -108,14 +108,17 @@ class GreenterDespatchBuilder
             ->setDestinatario($greenterClient)
             ->setEnvio($envio);
 
-        // Documentos Relacionados (Factura, Boleta)
+        // Documentos Relacionados (Factura, Boleta, etc.)
         if (!empty($despatch->related_documents)) {
             $addDocs = [];
             foreach ($despatch->related_documents as $rel) {
+                $docNum = $rel['number'] ?? $rel['document_number'] ?? (($rel['series'] ?? '') . '-' . ($rel['correlative'] ?? ''));
+                $emisorRuc = $rel['supplier_ruc'] ?? $rel['company_number'] ?? $company->ruc;
+                $docType = $rel['type_code'] ?? $rel['document_type'] ?? '01';
                 $addDocs[] = (new AdditionalDoc)
-                    ->setTipo($rel['type_code'] ?? '01')
-                    ->setNro($rel['number'])
-                    ->setEmisor($company->ruc);
+                    ->setTipo($docType)
+                    ->setNro($docNum)
+                    ->setEmisor($emisorRuc);
             }
             $greenterDespatch->setAddDocs($addDocs);
         }
@@ -133,6 +136,14 @@ class GreenterDespatchBuilder
         $greenterDespatch->setDetails($details);
 
         return $greenterDespatch;
+    }
+
+    private function sanitizeXmlText(?string $text): string
+    {
+        if ($text === null) {
+            return '';
+        }
+        return htmlspecialchars($text, ENT_XML1 | ENT_COMPAT, 'UTF-8');
     }
 
     private function createDateTime(string $date, string $time): DateTime

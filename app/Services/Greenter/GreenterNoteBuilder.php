@@ -121,10 +121,17 @@ class GreenterNoteBuilder
             $isGravado = in_array($igvType, ['10', '17']);
             $isExport = ($igvType === '40');
 
+            $description = $item->description;
+            if (($noteData['code'] ?? '') === '03' && (!empty($noteData['dice']) || !empty($noteData['debe_decir']))) {
+                $dicePart = !empty($noteData['dice']) ? 'DICE: ' . trim($noteData['dice']) : '';
+                $debePart = !empty($noteData['debe_decir']) ? 'DEBE DECIR: ' . trim($noteData['debe_decir']) : '';
+                $description = trim("{$dicePart} {$debePart}");
+            }
+
             $detail = (new SaleDetail)
                 ->setCodProducto($item->internal_code ?: 'ITEM-' . ($index + 1))
                 ->setUnidad($item->unit_code ?: 'NIU')
-                ->setDescripcion($item->description)
+                ->setDescripcion($description)
                 ->setCantidad($qty)
                 ->setTipAfeIgv($igvType);
 

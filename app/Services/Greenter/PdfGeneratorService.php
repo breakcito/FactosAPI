@@ -154,10 +154,13 @@ class PdfGeneratorService
         $noteHtml = '';
         if ($document->note_data) {
             $nd = $document->note_data;
-            $refDoc = ($nd['reference_series'] ?? '') . '-' . ($nd['reference_correlative'] ?? '');
+            $refSeries = $nd['reference_series'] ?? $nd['affected_series'] ?? '';
+            $refCorr = $nd['reference_correlative'] ?? $nd['affected_correlative'] ?? '';
+            $refDoc = ($refSeries && $refCorr) ? "{$refSeries}-{$refCorr}" : ($refSeries ?: $refCorr ?: '-');
+            $reasonDesc = $nd['reason_description'] ?? $nd['reason'] ?? $nd['code'] ?? '';
             $noteHtml = "
                 <div style='margin-top: 8px; background-color: #eff6ff; border: 1px solid #93c5fd; border-radius: 4px; padding: 6px 10px; font-size: 10px;'>
-                    <strong>DOCUMENTO QUE MODIFICA:</strong> {$refDoc} | <strong>MOTIVO:</strong> " . ($nd['reason_description'] ?? $nd['reason_code'] ?? '') . "
+                    <strong>DOCUMENTO QUE MODIFICA:</strong> {$refDoc} | <strong>MOTIVO:</strong> {$reasonDesc}
                     " . (!empty($nd['dice']) ? "<br><strong>DICE:</strong> " . htmlspecialchars($nd['dice']) : '') . "
                     " . (!empty($nd['debe_decir']) ? "<br><strong>DEBE DECIR:</strong> " . htmlspecialchars($nd['debe_decir']) : '') . "
                 </div>
@@ -529,7 +532,14 @@ class PdfGeneratorService
         if ($despatch->related_documents && is_array($despatch->related_documents)) {
             $docsList = [];
             foreach ($despatch->related_documents as $rd) {
-                $docsList[] = ($rd['type_name'] ?? 'Factura') . ' N° ' . ($rd['document_number'] ?? ($rd['series'] ?? '') . '-' . ($rd['correlative'] ?? '')) . (!empty($rd['company_number']) ? " (RUC {$rd['company_number']})" : '');
+                $docNum = $rd['document_number'] ?? (($rd['series'] ?? '') . '-' . ($rd['correlative'] ?? ''));
+                $suppInfo = '';
+                if (!empty($rd['supplier_name']) || !empty($rd['supplier_ruc'])) {
+                    $suppInfo = " — Proveedor: " . ($rd['supplier_name'] ?? '') . " (RUC " . ($rd['supplier_ruc'] ?? '') . ")";
+                } elseif (!empty($rd['company_number'])) {
+                    $suppInfo = " (RUC {$rd['company_number']})";
+                }
+                $docsList[] = ($rd['type_name'] ?? 'Factura') . ' N° ' . $docNum . $suppInfo;
             }
             if ($docsList) {
                 $relDocsHtml = "

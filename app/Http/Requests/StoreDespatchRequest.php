@@ -12,6 +12,22 @@ class StoreDespatchRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('related_documents') && is_array($this->input('related_documents'))) {
+            $docs = $this->input('related_documents');
+            foreach ($docs as &$doc) {
+                if (empty($doc['number']) && (!empty($doc['series']) || !empty($doc['correlative']))) {
+                    $doc['number'] = trim(($doc['series'] ?? '') . '-' . ($doc['correlative'] ?? ''));
+                }
+                if (empty($doc['type_code']) && !empty($doc['document_type'])) {
+                    $doc['type_code'] = $doc['document_type'];
+                }
+            }
+            $this->merge(['related_documents' => $docs]);
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -95,8 +111,12 @@ class StoreDespatchRequest extends FormRequest
 
             // Documentos Relacionados
             'related_documents' => ['nullable', 'array'],
-            'related_documents.*.type_code' => ['required_with:related_documents', 'string'],
-            'related_documents.*.number' => ['required_with:related_documents', 'string'],
+            'related_documents.*.type_code' => ['nullable', 'string'],
+            'related_documents.*.number' => ['nullable', 'string'],
+            'related_documents.*.series' => ['nullable', 'string'],
+            'related_documents.*.correlative' => ['nullable'],
+            'related_documents.*.supplier_ruc' => ['nullable', 'string'],
+            'related_documents.*.supplier_name' => ['nullable', 'string'],
 
             // Items
             'items' => ['required', 'array', 'min:1'],
