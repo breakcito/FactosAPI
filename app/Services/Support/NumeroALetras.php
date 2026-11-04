@@ -75,7 +75,7 @@ class NumeroALetras
             $words = self::convertNumber($intPart);
         }
 
-        return sprintf('SON %s CON %02d/100 %s', trim($words), $cents, $currencyName);
+        return sprintf('%s CON %02d/100 %s', trim($words), $cents, $currencyName);
     }
 
     private static function convertNumber(int $n): string

@@ -20,10 +20,19 @@ class DespatchController extends Controller
 {
     private function findDespatch(string $identifier): Despatch
     {
-        return Despatch::query()
-            ->where('id', $identifier)
-            ->orWhereRaw('MD5(id) = ?', [$identifier])
-            ->firstOrFail();
+        $query = Despatch::query()->where('id', $identifier);
+        if (strlen($identifier) === 32 && ctype_xdigit($identifier)) {
+            if (DB::getDriverName() === 'sqlite') {
+                $found = Despatch::query()->get()->first(fn ($d) => md5($d->id) === $identifier);
+                if ($found) {
+                    return $found;
+                }
+            } else {
+                $query->orWhereRaw('MD5(id) = ?', [$identifier]);
+            }
+        }
+
+        return $query->firstOrFail();
     }
 
     public function index(Request $request): JsonResponse
@@ -191,8 +200,15 @@ class DespatchController extends Controller
             return $desp;
         });
 
-        // Dispatch background processing job
-        ProcessDespatchJob::dispatch($despatch)->onQueue('high');
+        // Dispatch background processing without blocking HTTP response
+        if (app()->runningUnitTests()) {
+            ProcessDespatchJob::dispatch($despatch)->onQueue('high');
+        } elseif (config('queue.default') === 'sync') {
+            $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(base_path('artisan')) . ' factos:process-despatch ' . escapeshellarg($despatch->id) . ' > /dev/null 2>&1 &';
+            exec($cmd);
+        } else {
+            ProcessDespatchJob::dispatch($despatch)->onQueue('high');
+        }
 
         $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
 

@@ -34,15 +34,12 @@ class ProcessDocumentJob implements ShouldQueue
 
         $this->document->hash = $signResult['hash'];
         $this->document->xml_content = $signResult['xml'];
-        $this->document->xml_path = $signResult['xml_path'];
+        $this->document->xml_path = null;
+        $this->document->pdf_path = null;
         $this->document->status = 'signed';
-
-        // 3. Generate PDF representation and save
-        $pdfPath = $pdfService->generate($this->document);
-        $this->document->pdf_path = $pdfPath;
         $this->document->save();
 
-        // 4. Dispatch job to send the signed XML to SUNAT
+        // Dispatch job to send the signed XML to SUNAT
         SendDocumentToSunatJob::dispatch($this->document)->onQueue('sunat');
     }
 

@@ -96,7 +96,7 @@ test('can emit invoice on credit with multiple installments', function () {
 
     $doc->refresh();
     expect($doc->status)->toBe('signed');
-    expect(Storage::disk('local')->exists($doc->xml_path))->toBeTrue();
+    expect($doc->xml_content)->not()->toBeEmpty();
 });
 
 test('can emit invoice with detraction SPOT and related despatch guide', function () {
@@ -163,5 +163,5 @@ test('can emit invoice with detraction SPOT and related despatch guide', functio
 
     $doc->refresh();
     expect($doc->status)->toBe('signed');
-    expect(Storage::disk('local')->exists($doc->xml_path))->toBeTrue();
+    expect($doc->xml_content)->not()->toBeEmpty();
 });

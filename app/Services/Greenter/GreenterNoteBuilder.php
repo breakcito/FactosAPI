@@ -19,20 +19,25 @@ class GreenterNoteBuilder
     public function build(Document $document): Note
     {
         $company = $document->company;
+        $cData = $document->company_data ?? [];
         $establishmentCode = $document->establishment_code ?: ($company->establishment_code ?: '0000');
 
+        $ruc = $cData['ruc'] ?? $company->ruc;
+        $businessName = $cData['business_name'] ?? $company->business_name;
+        $trademarkName = $cData['trademark_name'] ?? $company->trademark_name ?: $businessName;
+
         $greenterCompany = (new GreenterCompany)
-            ->setRuc($company->ruc)
-            ->setRazonSocial($company->business_name)
-            ->setNombreComercial($company->trademark_name ?: $company->business_name)
+            ->setRuc($ruc)
+            ->setRazonSocial($businessName)
+            ->setNombreComercial($trademarkName)
             ->setAddress(
                 (new GreenterAddress)
-                    ->setUbigueo($company->ubigeo ?: '150101')
-                    ->setDepartamento($company->department ?: 'LIMA')
-                    ->setProvincia($company->province ?: 'LIMA')
-                    ->setDistrito($company->district ?: 'LIMA')
+                    ->setUbigueo($cData['ubigeo'] ?? $company->ubigeo ?: '150101')
+                    ->setDepartamento($cData['department'] ?? $company->department ?: 'LIMA')
+                    ->setProvincia($cData['province'] ?? $company->province ?: 'LIMA')
+                    ->setDistrito($cData['district'] ?? $company->district ?: 'LIMA')
                     ->setUrbanizacion('-')
-                    ->setDireccion($company->address ?: 'AV. PRINCIPAL 123')
+                    ->setDireccion($cData['address'] ?? $company->address ?: 'AV. PRINCIPAL 123')
                     ->setCodLocal($establishmentCode)
             );
 

@@ -160,8 +160,7 @@ test('can emit private transport despatch guide and sign with greenter', functio
     $despatch->refresh();
     expect($despatch->status)->toBe('signed');
     expect($despatch->hash)->not()->toBeEmpty();
-    expect(Storage::disk('local')->exists($despatch->xml_path))->toBeTrue();
-    expect(Storage::disk('local')->exists($despatch->pdf_path))->toBeTrue();
+    expect($despatch->xml_content)->not()->toBeEmpty();
 });
 
 test('can query and void despatch guide', function () {

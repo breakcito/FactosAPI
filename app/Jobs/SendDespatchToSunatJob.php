@@ -38,6 +38,7 @@ class SendDespatchToSunatJob implements ShouldQueue
 
         $signedXml = $this->despatch->xml_content;
         if (!$signedXml) {
+            $disk = config('filesystems.default', 'local');
             if ($this->despatch->xml_path && Storage::disk($disk)->exists($this->despatch->xml_path)) {
                 $signedXml = Storage::disk($disk)->get($this->despatch->xml_path);
             } else {
@@ -130,15 +131,29 @@ class SendDespatchToSunatJob implements ShouldQueue
                         return;
                     }
 
-                    // Ticket is still processing in SUNAT
+                    $code = (string) $statusResult->getCode();
+                    if ($code === '98' || $code === '098') {
+                        // Ticket is still processing in SUNAT
+                        $this->despatch->update([
+                            'status' => 'waiting_sunat',
+                            'sunat_code' => $code,
+                            'sunat_description' => 'Guía enviada a SUNAT. Ticket en procesamiento: ' . $ticket,
+                            'next_retry_at' => Carbon::now()->addMinutes(1),
+                        ]);
+
+                        SendWebhookJob::dispatch($this->despatch, 'despatch.waiting')->onQueue('webhooks');
+
+                        return;
+                    }
+
+                    $statusError = $statusResult->getError();
                     $this->despatch->update([
-                        'status' => 'waiting_sunat',
-                        'sunat_code' => (string) $statusResult->getCode() ?: '98',
-                        'sunat_description' => 'Guía enviada a SUNAT. Ticket en procesamiento: ' . $ticket,
-                        'next_retry_at' => Carbon::now()->addMinutes(1),
+                        'status' => 'rejected',
+                        'sunat_code' => $statusError?->getCode() ?: ($code ?: 'UNKNOWN'),
+                        'sunat_description' => $statusError?->getMessage() ?? 'Guía rechazada por SUNAT.',
                     ]);
 
-                    SendWebhookJob::dispatch($this->despatch, 'despatch.waiting')->onQueue('webhooks');
+                    SendWebhookJob::dispatch($this->despatch, 'despatch.rejected')->onQueue('webhooks');
 
                     return;
                 }

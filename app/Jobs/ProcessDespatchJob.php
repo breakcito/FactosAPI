@@ -32,15 +32,12 @@ class ProcessDespatchJob implements ShouldQueue
 
         $this->despatch->hash = $signResult['hash'];
         $this->despatch->xml_content = $signResult['xml'];
-        $this->despatch->xml_path = $signResult['xml_path'];
+        $this->despatch->xml_path = null;
+        $this->despatch->pdf_path = null;
         $this->despatch->status = 'signed';
-
-        // 2. Generate PDF representation and save to storage
-        $pdfPath = $pdfService->generateDespatchPdf($this->despatch);
-        $this->despatch->pdf_path = $pdfPath;
         $this->despatch->save();
 
-        // 3. Dispatch job to send the signed XML to SUNAT
+        // Dispatch job to send the signed XML to SUNAT
         SendDespatchToSunatJob::dispatch($this->despatch)->onQueue('sunat');
     }
 

@@ -184,8 +184,15 @@ class InvoiceController extends Controller
             return $doc;
         });
 
-        // Dispatch background processing job to high queue
-        ProcessDocumentJob::dispatch($document)->onQueue('high');
+        // Dispatch background processing without blocking HTTP response
+        if (app()->runningUnitTests()) {
+            ProcessDocumentJob::dispatch($document)->onQueue('high');
+        } elseif (config('queue.default') === 'sync') {
+            $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(base_path('artisan')) . ' factos:process-document ' . escapeshellarg($document->id) . ' > /dev/null 2>&1 &';
+            exec($cmd);
+        } else {
+            ProcessDocumentJob::dispatch($document)->onQueue('high');
+        }
 
         $baseUrl = rtrim(config('app.url', 'http://localhost'), '/');
 

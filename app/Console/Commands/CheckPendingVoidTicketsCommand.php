@@ -57,8 +57,8 @@ class CheckPendingVoidTicketsCommand extends Command
                     $cdrZip = $statusResult->getCdrZip();
 
                     if ($cdrZip) {
-                        $cdrPath = $greenterService->saveCdr($document, $cdrZip, isVoid: true);
-                        $document->void_cdr_path = $cdrPath;
+                        $document->void_cdr_content = base64_encode($cdrZip);
+                        $document->void_cdr_path = null;
                     }
 
                     $document->status = 'voided';

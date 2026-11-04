@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Document;
+use App\Services\Greenter\PdfGeneratorService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
@@ -10,7 +11,6 @@ use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Storage;
 
 class InvoiceMail extends Mailable
 {
@@ -25,14 +25,18 @@ class InvoiceMail extends Mailable
     public function envelope(): Envelope
     {
         $company = $this->document->company;
+        $cData = $this->document->company_data ?? [];
+        $businessName = $cData['business_name'] ?? $company->business_name;
+        $trademarkName = $cData['trademark_name'] ?? $company->trademark_name;
+
         $subject = $company->email_template_settings['subject']
-            ?? "Comprobante Electrónico {$this->document->series}-{$this->document->correlative} - {$company->business_name}";
+            ?? "Comprobante Electrónico {$this->document->series}-{$this->document->correlative} - {$businessName}";
 
         if (!$this->useFacturadorSender && $company->hasCustomMailConfig()) {
             $fromAddress = $company->mail_from_address
                 ?: ($company->mail_username ?: config('mail.from.address'));
             $fromName = $company->mail_from_name
-                ?: ($company->trademark_name ?: ($company->business_name ?: config('mail.from.name')));
+                ?: ($trademarkName ?: ($businessName ?: config('mail.from.name')));
 
             $from = new Address($fromAddress, $fromName);
             $replyTo = [$from];
@@ -40,7 +44,7 @@ class InvoiceMail extends Mailable
             // Envío realizado por el facturador (por defecto, fallback o notificación a la empresa)
             $fromAddress = config('mail.from.address');
             $fromName = $company->mail_from_name
-                ?: ($company->trademark_name ?: ($company->business_name ?: config('mail.from.name')));
+                ?: ($trademarkName ?: ($businessName ?: config('mail.from.name')));
 
             $from = new Address($fromAddress, $fromName);
 
@@ -71,26 +75,27 @@ class InvoiceMail extends Mailable
     public function attachments(): array
     {
         $attachments = [];
-        $disk = config('factos.storage_disk', 'local');
+        $baseName = $this->document->getSunatFileName();
 
-        if ($this->document->xml_path && Storage::disk($disk)->exists($this->document->xml_path)) {
-            $attachments[] = Attachment::fromStorageDisk($disk, $this->document->xml_path)
-                ->as(basename($this->document->xml_path))
-                ->withMime('application/xml');
+        if (!empty($this->document->xml_content)) {
+            $attachments[] = Attachment::fromData(
+                fn () => $this->document->xml_content,
+                "{$baseName}.xml"
+            )->withMime('application/xml');
         }
 
-        if ($this->document->pdf_path && Storage::disk($disk)->exists($this->document->pdf_path)) {
-            $attachments[] = Attachment::fromStorageDisk($disk, $this->document->pdf_path)
-                ->as(basename($this->document->pdf_path))
-                ->withMime('application/pdf');
-        }
+        $attachments[] = Attachment::fromData(
+            fn () => app(PdfGeneratorService::class)->renderPdfBytes($this->document),
+            "{$baseName}.pdf"
+        )->withMime('application/pdf');
 
         return $attachments;
     }
 
     private function renderHtml(): string
     {
-        $company = $this->document->company;
+        $cData = $this->document->company_data ?? [];
+        $businessName = $cData['business_name'] ?? $this->document->company?->business_name ?? '';
         $docTitle = match ($this->document->type_code) {
             '03' => 'Boleta de Venta Electrónica',
             '07' => 'Nota de Crédito Electrónica',
@@ -100,7 +105,7 @@ class InvoiceMail extends Mailable
 
         return "
         <div style='font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;'>
-            <h2 style='color: #1a56a0; margin-top: 0;'>{$company->business_name}</h2>
+            <h2 style='color: #1a56a0; margin-top: 0;'>{$businessName}</h2>
             <p>Estimado(a) <strong>{$this->document->client_name}</strong>,</p>
             <p>Adjuntamos su <strong>{$docTitle} {$this->document->series}-{$this->document->correlative}</strong> emitida el {$this->document->issue_date->format('d/m/Y')}.</p>
             <table style='width: 100%; border-collapse: collapse; margin: 20px 0;'>

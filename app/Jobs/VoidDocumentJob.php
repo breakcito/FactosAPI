@@ -27,15 +27,12 @@ class VoidDocumentJob implements ShouldQueue
         $company = $this->document->company;
 
         // Daily correlative for voiding: count void communications sent today for this company
-        $todayStr = now()->format('Ymd');
         $correlative = (int) (Document::where('company_id', $company->id)
-            ->where(function ($q) use ($todayStr): void{
-                $q->where('void_xml_path', 'like', "%-{$todayStr}-%")
-                    ->orWhere(function ($sub): void{
-                        $sub->whereNotNull('void_ticket')
-                            ->whereDate('updated_at', now()->toDateString());
-                    });
+            ->where(function ($q): void {
+                $q->whereNotNull('void_xml_content')
+                    ->orWhereNotNull('void_ticket');
             })
+            ->whereDate('updated_at', now()->toDateString())
             ->where('id', '!=', $this->document->id)
             ->count() + 1);
 
@@ -43,7 +40,8 @@ class VoidDocumentJob implements ShouldQueue
         $result = $voiding['result'];
 
         $this->document->void_reason = $this->reason;
-        $this->document->void_xml_path = $voiding['xml_path'];
+        $this->document->void_xml_content = $voiding['xml'];
+        $this->document->void_xml_path = null;
 
         if (!$result->isSuccess()) {
             // Keep document accepted so the company can retry voiding; record error in void fields
@@ -73,8 +71,8 @@ class VoidDocumentJob implements ShouldQueue
                 $cdrZip = $statusResult->getCdrZip();
 
                 if ($cdrZip) {
-                    $cdrPath = $greenterService->saveCdr($this->document, $cdrZip, isVoid: true);
-                    $this->document->void_cdr_path = $cdrPath;
+                    $this->document->void_cdr_content = base64_encode($cdrZip);
+                    $this->document->void_cdr_path = null;
                 }
 
                 $this->document->status = 'voided';

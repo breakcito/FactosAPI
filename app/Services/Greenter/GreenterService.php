@@ -90,21 +90,17 @@ class GreenterService
         $xmlUtils = new XmlUtils;
         $hash = (string) $xmlUtils->getHashSign($xml);
 
-        $xmlPath = $this->getDocumentStoragePath($document, 'xml');
-        $disk = config('factos.storage_disk', 'local');
-        Storage::disk($disk)->put($xmlPath, $xml);
-
         return [
             'xml' => $xml,
             'hash' => $hash,
-            'xml_path' => $xmlPath,
+            'xml_path' => null,
         ];
     }
 
     /**
      * Build and sign a Guía de Remisión Electrónica (Despatch).
      *
-     * @return array{xml: string, hash: string, xml_path: string}
+     * @return array{xml: string, hash: string, xml_path: ?string}
      */
     public function signDespatch(Despatch $despatch): array
     {
@@ -116,14 +112,10 @@ class GreenterService
         $xmlUtils = new XmlUtils;
         $hash = (string) $xmlUtils->getHashSign($xml);
 
-        $xmlPath = $this->getDespatchStoragePath($despatch, 'xml');
-        $disk = config('factos.storage_disk', 'local');
-        Storage::disk($disk)->put($xmlPath, $xml);
-
         return [
             'xml' => $xml,
             'hash' => $hash,
-            'xml_path' => $xmlPath,
+            'xml_path' => null,
         ];
     }
 
@@ -196,7 +188,8 @@ class GreenterService
             $clientSecret = $company->client_secret ?: 'test-Hty/M6QshYvPgItX2P0+Kw==';
         } else {
             $user = ($company->is_production || empty($company->sol_user)) ? 'MODDATOS' : $company->sol_user;
-            $pass = ($company->is_production || empty($company->sol_pass)) ? 'moddatos' : $company->sol_pass;
+            $rawPass = ($company->is_production || empty($company->sol_pass)) ? 'MODDATOS' : $company->sol_pass;
+            $pass = strtolower($rawPass) === 'moddatos' ? 'MODDATOS' : $rawPass;
             $api->setClaveSOL(
                 $company->ruc,
                 $user,
@@ -258,28 +251,13 @@ class GreenterService
 
         $xml = (string) $see->getXmlSigned($voidModel);
 
-        $prefix = $isFacturaOrNote ? 'RA' : 'RC';
-        $correlativeFormatted = str_pad((string) $correlative, 5, '0', STR_PAD_LEFT);
-        $xmlFileName = sprintf('%s-%s-%s-%s.xml', $company->ruc, $prefix, now()->format('Ymd'), $correlativeFormatted);
-
-        $xmlPath = sprintf(
-            'tenants/%s/%s/%s/voids/%s',
-            $company->ruc,
-            now()->format('Y'),
-            now()->format('m'),
-            $xmlFileName
-        );
-
-        $disk = config('factos.storage_disk', 'local');
-        Storage::disk($disk)->put($xmlPath, $xml);
-
         /** @var SummaryResult $result */
         $result = $see->send($voidModel);
 
         return [
             'result' => $result,
             'xml' => $xml,
-            'xml_path' => $xmlPath,
+            'xml_path' => null,
         ];
     }
 
@@ -318,18 +296,11 @@ class GreenterService
     }
 
     /**
-     * Save CDR ZIP to storage.
+     * Save CDR ZIP (no longer persisted to disk; stored in DB cdr_content).
      */
-    public function saveCdr(Document|Despatch $model, string $cdrZipContent, bool $isVoid = false): string
+    public function saveCdr(Document|Despatch $model, string $cdrZipContent, bool $isVoid = false): ?string
     {
-        $cdrPath = $model instanceof Document
-            ? $this->getDocumentStoragePath($model, 'zip', isCdr: true, isVoid: $isVoid)
-            : $this->getDespatchStoragePath($model, 'zip', isCdr: true, isVoid: $isVoid);
-
-        $disk = config('factos.storage_disk', 'local');
-        Storage::disk($disk)->put($cdrPath, $cdrZipContent);
-
-        return $cdrPath;
+        return null;
     }
 
     /**

@@ -17,10 +17,19 @@ class DocumentController extends Controller
 {
     private function findDocument(string $identifier): Document
     {
-        return Document::query()
-            ->where('id', $identifier)
-            ->orWhereRaw('MD5(id) = ?', [$identifier])
-            ->firstOrFail();
+        $query = Document::query()->where('id', $identifier);
+        if (strlen($identifier) === 32 && ctype_xdigit($identifier)) {
+            if (DB::getDriverName() === 'sqlite') {
+                $found = Document::query()->get()->first(fn ($d) => md5($d->id) === $identifier);
+                if ($found) {
+                    return $found;
+                }
+            } else {
+                $query->orWhereRaw('MD5(id) = ?', [$identifier]);
+            }
+        }
+
+        return $query->firstOrFail();
     }
 
     public function index(Request $request): JsonResponse
