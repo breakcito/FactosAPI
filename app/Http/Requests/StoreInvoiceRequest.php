@@ -65,6 +65,7 @@ class StoreInvoiceRequest extends FormRequest
             // Forma de pago y Cuotas
             'payment_method' => ['nullable', 'string', 'in:contado,credito,CONTADO,CREDITO'],
             'installments' => ['nullable', 'array', 'required_if:payment_method,credito,CREDITO'],
+            'installments.*.number' => ['nullable', 'integer', 'min:1'],
             'installments.*.due_date' => ['required_with:installments', 'date_format:Y-m-d'],
             'installments.*.amount' => ['required_with:installments', 'numeric', 'min:0.01'],
 
@@ -75,6 +76,8 @@ class StoreInvoiceRequest extends FormRequest
             'detraction.service_code' => ['required_with:detraction', 'string'],
             'detraction.percent' => ['required_with:detraction', 'numeric', 'min:0'],
             'detraction.amount' => ['required_with:detraction', 'numeric', 'min:0'],
+            'detraction.amount_usd' => ['nullable', 'numeric', 'min:0'],
+            'detraction.exchange_rate' => ['nullable', 'numeric', 'min:0'],
 
             'retention' => ['nullable', 'array'],
             'retention.code' => ['required_with:retention', 'string'],
@@ -115,6 +118,7 @@ class StoreInvoiceRequest extends FormRequest
             'note.reason' => ['required_with:note', 'string', 'max:250'],
             'note.dice' => ['nullable', 'string'],
             'note.debe_decir' => ['nullable', 'string'],
+            'note.new_invoice_number' => ['nullable', 'string', 'max:30'],
 
             // Cliente
             'client' => ['required', 'array'],
@@ -138,7 +142,7 @@ class StoreInvoiceRequest extends FormRequest
             'items.*.internal_code' => ['nullable', 'string', 'max:50'],
             'items.*.description' => ['required', 'string', 'max:500'],
             'items.*.unit_code' => ['required', 'string', 'max:5'],
-            'items.*.quantity' => ['required', 'numeric', 'min:0.0001'],
+            'items.*.quantity' => ['required', 'numeric', 'min:0.000001'],
             'items.*.unit_value' => ['required', 'numeric', 'min:0'],
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
             'items.*.igv_type' => ['required', 'string', 'in:10,11,12,13,14,15,16,17,20,21,30,31,32,33,34,35,36,40'],

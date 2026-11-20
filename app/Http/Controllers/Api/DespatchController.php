@@ -119,6 +119,7 @@ class DespatchController extends Controller
             'district' => $company->district,
             'email' => $company->email,
             'phone' => $company->phone,
+            'logo_url' => $company->logo_path,
         ];
 
         $isReferentialWeight = (bool) ($validated['is_referential_weight'] ?? false);

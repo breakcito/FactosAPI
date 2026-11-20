@@ -9,7 +9,9 @@ use DateTimeZone;
 use Greenter\Model\Client\Client as GreenterClient;
 use Greenter\Model\Company\Address as GreenterAddress;
 use Greenter\Model\Company\Company as GreenterCompany;
+use Greenter\Model\Sale\Cuota;
 use Greenter\Model\Sale\Document as GreenterDocRel;
+use Greenter\Model\Sale\FormaPagos\FormaPagoCredito;
 use Greenter\Model\Sale\Legend;
 use Greenter\Model\Sale\Note;
 use Greenter\Model\Sale\SaleDetail;
@@ -96,6 +98,32 @@ class GreenterNoteBuilder
 
         if ($icbper > 0) {
             $note->setIcbper($icbper);
+        }
+
+        // Forma de pago al crédito y cuotas (ej. NC Motivo 13: Ajustes - montos y/o fechas de pago)
+        if (strtolower((string) $document->payment_method) === 'credito' && !empty($document->installments)) {
+            $installmentsSum = 0.0;
+            $cuotas = [];
+            foreach ($document->installments as $inst) {
+                $instAmount = (float) ($inst['amount'] ?? 0);
+                $installmentsSum += $instAmount;
+                $cuotas[] = (new Cuota)
+                    ->setMonto($instAmount)
+                    ->setFechaPago(new DateTime($inst['due_date'], new DateTimeZone('America/Lima')));
+            }
+            $note->setFormaPago(new FormaPagoCredito(round($installmentsSum, 2)));
+            $note->setCuotas($cuotas);
+        }
+
+        // Documento relacionado: Nueva Factura Electrónica en NC Motivo 02 (Anulación por error en el RUC)
+        $relDocs = [];
+        if (!empty($noteData['new_invoice_number'])) {
+            $relDocs[] = (new GreenterDocRel)
+                ->setTipoDoc($affectedType)
+                ->setNroDoc(trim((string) $noteData['new_invoice_number']));
+        }
+        if (!empty($relDocs)) {
+            $note->setRelDocs($relDocs);
         }
 
         // Guías y Documentos Relacionados

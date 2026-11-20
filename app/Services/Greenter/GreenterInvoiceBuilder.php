@@ -109,16 +109,24 @@ class GreenterInvoiceBuilder
 
         // Forma de pago
         if (strtolower($document->payment_method) === 'credito') {
-            $invoice->setFormaPago(new FormaPagoCredito($total));
-
+            $creditAmount = $total;
             if (!empty($document->installments)) {
+                $installmentsSum = 0.0;
                 $cuotas = [];
                 foreach ($document->installments as $inst) {
+                    $instAmount = (float) $inst['amount'];
+                    $installmentsSum += $instAmount;
                     $cuotas[] = (new Cuota)
-                        ->setMonto((float) $inst['amount'])
+                        ->setMonto($instAmount)
                         ->setFechaPago(new DateTime($inst['due_date'], new DateTimeZone('America/Lima')));
                 }
+                if ($installmentsSum > 0) {
+                    $creditAmount = round($installmentsSum, 2);
+                }
+                $invoice->setFormaPago(new FormaPagoCredito($creditAmount));
                 $invoice->setCuotas($cuotas);
+            } else {
+                $invoice->setFormaPago(new FormaPagoCredito($creditAmount));
             }
         } else {
             $invoice->setFormaPago(new FormaPagoContado);
@@ -146,11 +154,11 @@ class GreenterInvoiceBuilder
             $invoice->setDescuentos($descuentos);
         }
 
-        // Detracciones
+        // Detracciones (en SUNAT UBL 2.1 el monto siempre se informa en PEN)
         if (!empty($document->detraction)) {
             $detr = $document->detraction;
             $detraccion = (new Detraction)
-                ->setCodMedioPago($detr['payment_method_code'] ?? '001')
+                ->setCodMedioPago($detr['payment_method_code'] ?? '003')
                 ->setCtaBanco($detr['bank_account'])
                 ->setCodBienDetraccion($detr['service_code'])
                 ->setPercent((float) $detr['percent'])
@@ -293,9 +301,17 @@ class GreenterInvoiceBuilder
         }
 
         if (!empty($document->detraction)) {
+            $detrService = (string) ($document->detraction['service_code'] ?? '');
+            $opType = (string) ($document->operation_type ?? '');
+            $detrLegend = match (true) {
+                $opType === '1004' || $detrService === '027' => 'Operación sujeta a detracción - Servicio de Transporte de Carga',
+                $opType === '1002' || $detrService === '004' => 'Operación sujeta a detracción - Recursos Hidrobiológicos',
+                $opType === '1003' || $detrService === '026' || $detrService === '028' => 'Operación sujeta a detracción - Servicio de Transporte de Personas',
+                default => 'Operación sujeta a detracción',
+            };
             $legends[] = (new Legend)
                 ->setCode('2006')
-                ->setValue('Operación sujeta a detracción');
+                ->setValue($detrLegend);
         }
 
         $invoice->setLegends($legends);
